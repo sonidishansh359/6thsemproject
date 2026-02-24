@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -117,7 +118,7 @@ export default function DeliveryDashboard() {
         {/* Active Order */}
         {activeOrder && (() => {
           const isPickupPhase = ['placed', 'accepted', 'preparing', 'cooking', 'ready_for_pickup', 'arrived_at_restaurant'].includes(activeOrder.status);
-          const isCollected = activeOrder.status === 'collected';
+          const isCollected = activeOrder.status === ('picked' as any) || activeOrder.status === 'out_for_delivery';
 
           return (
             <motion.div
@@ -162,14 +163,18 @@ export default function DeliveryDashboard() {
                       )}
 
                     </div>
-                    <Button onClick={() => navigate('/delivery/tracking')}>
-                      <Navigation className="w-4 h-4 mr-2" />
-                      {/* Button logic:
-                        - Before collecting: 'View Restaurant' (shows tracking/location)
-                        - After collecting: 'View Map' (shows map for delivery)
-                      */}
-                      {isPickupPhase && !isCollected ? 'View Restaurant' : 'View Map'}
-                    </Button>
+                    <div className="flex flex-col gap-2 min-w-[140px]">
+                      <Button onClick={() => navigate(`/delivery/tracking/${activeOrder.id}`)} className="w-full">
+                        <Navigation className="w-4 h-4 mr-2" />
+                        {isPickupPhase && !isCollected ? 'View Restaurant' : 'View Map'}
+                      </Button>
+                      {!isPickupPhase && (
+                        <Button variant="outline" onClick={() => navigate(`/delivery/tracking/${activeOrder.id}?target=restaurant`)} className="w-full">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          View Restaurant
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

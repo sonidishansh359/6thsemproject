@@ -654,7 +654,15 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   // Load cart from localStorage
   useEffect(() => {
     const savedCart = localStorage.getItem(getCartStorageKey(user?.id));
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        const validCart = parsedCart.filter((item: any) => item.menuItemId);
+        setCart(validCart);
+      } catch (e) {
+        console.error('Failed to parse cart', e);
+      }
+    }
   }, [user?.id]);
 
   // Save to localStorage
@@ -695,16 +703,21 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }
   }, [orders, user?.id]);
 
-  const addToCart = (item: MenuItem, restaurantId: string, restaurantName: string) => {
+  const addToCart = (item: any, restaurantId: string, restaurantName: string) => {
+    const itemId = item.id || item._id;
+    if (!itemId) {
+      console.error('Cannot add item without ID to cart', item);
+      return;
+    }
     setCart(prev => {
-      const existing = prev.find(c => c.menuItemId === item.id);
+      const existing = prev.find(c => c.menuItemId === itemId);
       if (existing) {
         return prev.map(c =>
-          c.menuItemId === item.id ? { ...c, quantity: c.quantity + 1 } : c
+          c.menuItemId === itemId ? { ...c, quantity: c.quantity + 1 } : c
         );
       }
       return [...prev, {
-        menuItemId: item.id,
+        menuItemId: itemId,
         name: item.name,
         quantity: 1,
         price: item.price,

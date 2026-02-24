@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertCircle, Navigation, Phone, Pause, Play, CheckCircle, Send } from 'lucide-react';
+import { AlertCircle, Navigation, Phone, Pause, Play, CheckCircle, Send, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import io from 'socket.io-client';
@@ -430,7 +430,7 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
     previousLocationRef.current = newLocation;
   }, [currentLocation]);
 
-  // Calculate distance to user
+  // Calculate distance to target (restaurant or user)
   useEffect(() => {
     if (!currentLocation || !userLocation) return;
 
@@ -447,6 +447,52 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
     setDistance(dist);
   }, [currentLocation, userLocation]);
 
+  // Handle Mark as Picked Up
+  const handleMarkAsPickedUp = async () => {
+    try {
+      const token = getAuthToken();
+
+      if (!token) {
+        toast({
+          title: 'Authentication Error',
+          description: 'Please login again',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}/delivery-status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'picked' })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update status');
+      }
+
+      toast({
+        title: 'Order Picked Up! 🥡',
+        description: 'Navigating to customer location...',
+      });
+
+      // Redirect to the normal tracking page (removes ?target=restaurant query params if any)
+      window.location.href = `/delivery/tracking/${orderId}`;
+
+    } catch (error: any) {
+      console.error('Error marking as picked up:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update order status',
+        variant: 'destructive'
+      });
+    }
+  };
 
   // Handle Mark as Delivered - Request OTP
   const handleMarkAsDelivered = async () => {
@@ -565,7 +611,7 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
   };
 
   return (
-    <div className="w-full h-screen bg-gray-50 flex flex-col relative z-0">
+    <div className="w-full min-h-[80vh] bg-gray-50 flex flex-col relative z-0 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b p-4 shadow-sm">
         <div className="max-w-6xl mx-auto">
@@ -687,32 +733,45 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
                   </Card>
                 )}
 
-                {/* Mark as Delivered Button */}
+                {/* Mark as Delivered/Picked Up Button */}
                 {isTracking && (
                   <div className="space-y-2">
-                    {cashCollected && requiresCashCollection && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm mb-2">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Cash collected! You can now complete delivery.</span>
-                      </div>
-                    )}
+                    {targetType === 'user' ? (
+                      <>
+                        {cashCollected && requiresCashCollection && (
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm mb-2">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Cash collected! You can now complete delivery.</span>
+                          </div>
+                        )}
 
-                    <Button
-                      onClick={handleMarkAsDelivered}
-                      disabled={isRequestingOTP || !currentLocation || !canMarkDelivered}
-                      className={`w-full font-semibold ${!canMarkDelivered
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-orange-600 hover:bg-orange-700 text-white'
-                        }`}
-                    >
-                      <CheckCircle size={18} className="mr-2" />
-                      {isRequestingOTP ? 'Sending OTP...' : 'Mark as Delivered'}
-                    </Button>
+                        <Button
+                          onClick={handleMarkAsDelivered}
+                          disabled={isRequestingOTP || !currentLocation || !canMarkDelivered}
+                          className={`w-full font-semibold ${!canMarkDelivered
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-orange-600 hover:bg-orange-700 text-white'
+                            }`}
+                        >
+                          <CheckCircle size={18} className="mr-2" />
+                          {isRequestingOTP ? 'Sending OTP...' : 'Mark as Delivered'}
+                        </Button>
 
-                    {!canMarkDelivered && (
-                      <p className="text-xs text-center text-red-500 font-medium">
-                        * Collect cash to enable delivery
-                      </p>
+                        {!canMarkDelivered && (
+                          <p className="text-xs text-center text-red-500 font-medium">
+                            * Collect cash to enable delivery
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Button
+                        onClick={handleMarkAsPickedUp}
+                        disabled={!currentLocation}
+                        className="w-full font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Package size={18} className="mr-2" />
+                        Mark as Picked Up
+                      </Button>
                     )}
                   </div>
                 )}

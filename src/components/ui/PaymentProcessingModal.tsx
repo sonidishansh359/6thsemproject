@@ -10,6 +10,7 @@ interface PaymentProcessingModalProps {
     amount: string;
     payoutId?: string;
     errorMessage?: string;
+    type?: 'withdrawal' | 'add';
 }
 
 export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
@@ -18,7 +19,8 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
     status,
     amount,
     payoutId,
-    errorMessage
+    errorMessage,
+    type = 'withdrawal'
 }) => {
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && status !== 'processing' && onClose()}>
@@ -39,7 +41,9 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                                         <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Processing Withdrawal</h3>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                                    {type === 'withdrawal' ? 'Processing Withdrawal' : 'Processing Payment'}
+                                </h3>
                                 <p className="text-slate-500 mb-6">Connect secured via Razorpay...</p>
 
                                 <div className="w-full bg-slate-100 rounded-lg p-3 flex justify-between items-center mb-2">
@@ -47,7 +51,8 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                                     <span className="text-lg font-bold text-slate-800">₹{amount}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-slate-400">
-                                    <Wallet className="w-3 h-3" /> Sending to linked account
+                                    <Wallet className="w-3 h-3" />
+                                    {type === 'withdrawal' ? 'Sending to linked account' : 'Adding to wallet'}
                                 </div>
                             </motion.div>
                         )}
@@ -68,8 +73,12 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                                 >
                                     <CheckCircle className="w-10 h-10 text-green-600" />
                                 </motion.div>
-                                <h3 className="text-2xl font-bold text-green-700 mb-2">Withdrawal Successful!</h3>
-                                <p className="text-slate-600 mb-6">Funds have been transferred to your account.</p>
+                                <h3 className="text-2xl font-bold text-green-700 mb-2">
+                                    {type === 'withdrawal' ? 'Withdrawal Successful!' : 'Payment Successful!'}
+                                </h3>
+                                <p className="text-slate-600 mb-6">
+                                    {type === 'withdrawal' ? 'Funds have been transferred to your account.' : 'Funds have been added to your wallet.'}
+                                </p>
 
                                 <div className="w-full bg-white border border-green-100 rounded-xl p-4 mb-6 shadow-sm">
                                     <div className="flex justify-between items-center mb-2">
@@ -104,7 +113,9 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
                                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
                                     <XCircle className="w-10 h-10 text-red-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-red-700 mb-2">Withdrawal Failed</h3>
+                                <h3 className="text-xl font-bold text-red-700 mb-2">
+                                    {type === 'withdrawal' ? 'Withdrawal Failed' : 'Payment Failed'}
+                                </h3>
                                 <p className="text-slate-500 mb-6">{errorMessage || 'Something went wrong. Please try again.'}</p>
 
                                 <button

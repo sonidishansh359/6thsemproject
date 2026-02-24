@@ -75,4 +75,71 @@ router.get('/transactions', auth, adminAuth, async (req, res) => {
     }
 });
 
+// Admin Add Money
+router.post('/add-money', auth, adminAuth, async (req, res) => {
+    try {
+        const { amount } = req.body;
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: 'Invalid amount' });
+        }
+
+        let admin = await Admin.findOne({ user: req.user.id });
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin profile not found' });
+        }
+
+        admin.availableBalance += amount;
+        admin.totalEarnings += amount; // Alternatively track 'totalAdded' separately, but keeping simple
+        await admin.save();
+
+        await Transaction.create({
+            admin: admin._id,
+            amount: amount,
+            type: 'earning',
+            status: 'success',
+            description: 'Funds Added by Admin',
+        });
+
+        res.json({ message: 'Money added successfully', availableBalance: admin.availableBalance });
+    } catch (err) {
+        console.error('Error adding money:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Admin Withdraw Money
+router.post('/withdraw', auth, adminAuth, async (req, res) => {
+    try {
+        const { amount } = req.body;
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: 'Invalid amount' });
+        }
+
+        let admin = await Admin.findOne({ user: req.user.id });
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin profile not found' });
+        }
+
+        if (admin.availableBalance < amount) {
+            return res.status(400).json({ message: 'Insufficient balance' });
+        }
+
+        admin.availableBalance -= amount;
+        await admin.save();
+
+        await Transaction.create({
+            admin: admin._id,
+            amount: -amount,
+            type: 'withdrawal',
+            status: 'success',
+            description: 'Funds Withdrawn by Admin',
+        });
+
+        res.json({ message: 'Money withdrawn successfully', availableBalance: admin.availableBalance });
+    } catch (err) {
+        console.error('Error withdrawing money:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

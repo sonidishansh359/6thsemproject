@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fetchAdminBalance, fetchAdminTransactions } from "../lib/adminApi";
-import { Loader2, DollarSign, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { fetchAdminBalance, fetchAdminTransactions, addAdminMoney, withdrawAdminMoney } from "../lib/adminApi";
+import { Loader2, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
+import { PaymentProcessingModal } from "@/components/ui/PaymentProcessingModal";
 
 const AdminEarnings = () => {
     const [balance, setBalance] = useState<{ availableBalance: number; totalEarnings: number } | null>(null);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal states
+    const [addMoneyOpen, setAddMoneyOpen] = useState(false);
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
+    const [amountInput, setAmountInput] = useState("");
+
+    // Payment Processing Modal States
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+    const [paymentType, setPaymentType] = useState<'add' | 'withdrawal'>('add');
+    const [paymentError, setPaymentError] = useState('');
+    const [transactionId, setTransactionId] = useState('');
 
     useEffect(() => {
         loadData();
@@ -39,17 +55,141 @@ const AdminEarnings = () => {
         );
     }
 
+    const handleAddMoney = async () => {
+        const amount = parseFloat(amountInput);
+        if (isNaN(amount) || amount <= 0) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+
+        setAddMoneyOpen(false);
+        setPaymentType('add');
+        setShowPaymentModal(true);
+        setPaymentStatus('processing');
+        setPaymentError('');
+
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate Razorpay processing delay
+            await addAdminMoney(amount);
+
+            setPaymentStatus('success');
+            setTransactionId(`rzp_add_${Math.random().toString(36).substring(2, 10).toUpperCase()}`);
+            loadData();
+        } catch (error: any) {
+            setPaymentStatus('error');
+            setPaymentError(error.message || "Failed to add money via Razorpay");
+        }
+    };
+
+    const handleWithdraw = async () => {
+        const amount = parseFloat(amountInput);
+        if (isNaN(amount) || amount <= 0) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+
+        if (balance && amount > balance.availableBalance) {
+            toast.error("Insufficient balance for this withdrawal");
+            return;
+        }
+
+        setWithdrawOpen(false);
+        setPaymentType('withdrawal');
+        setShowPaymentModal(true);
+        setPaymentStatus('processing');
+        setPaymentError('');
+
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate Razorpay processing delay
+            await withdrawAdminMoney(amount);
+
+            setPaymentStatus('success');
+            setTransactionId(`payout_${Math.random().toString(36).substring(2, 11)}`);
+            loadData();
+        } catch (error: any) {
+            setPaymentStatus('error');
+            setPaymentError(error.message || "Failed to withdraw money via Razorpay");
+        }
+    };
+
+    const handleClosePaymentModal = () => {
+        setShowPaymentModal(false);
+        setPaymentStatus('idle');
+        setTransactionId('');
+        if (paymentStatus === 'success') {
+            setAmountInput("");
+        }
+    };
+
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Earnings & Wallet</h1>
-                <p className="text-muted-foreground">Manage admin wallet and view transaction history.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Earnings & Wallet</h1>
+                    <p className="text-muted-foreground">Manage admin wallet and view transaction history.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Dialog open={addMoneyOpen} onOpenChange={(open) => { setAddMoneyOpen(open); if (!open) setAmountInput(""); }}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-green-600 hover:bg-green-700">
+                                <Plus className="mr-2 h-4 w-4" /> Add Money
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Add Money to Wallet</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4">
+                                <label className="text-sm font-medium mb-1 block">Amount (₹)</label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g. 500"
+                                    value={amountInput}
+                                    onChange={(e) => setAmountInput(e.target.value)}
+                                    min="1"
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setAddMoneyOpen(false)}>Cancel</Button>
+                                <Button onClick={handleAddMoney} disabled={!amountInput} className="bg-green-600 hover:bg-green-700">
+                                    Proceed to Razorpay
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
-                {/* DEBUG SECTION */}
-                <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 text-xs rounded border border-yellow-300 font-mono">
-                    <strong>DEBUG:</strong> Token Status: {localStorage.getItem('adminToken') ? "✅ Present" : "❌ MISSING"}
-                    <br />
-                    Token Length: {localStorage.getItem('adminToken')?.length || 0}
+                    <Dialog open={withdrawOpen} onOpenChange={(open) => { setWithdrawOpen(open); if (!open) setAmountInput(""); }}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+                                <Minus className="mr-2 h-4 w-4" /> Withdraw
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Withdraw Funds</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4">
+                                <div className="mb-4 text-sm text-muted-foreground">
+                                    Available Balance: <span className="font-bold text-foreground">₹{balance?.availableBalance?.toFixed(2) || '0.00'}</span>
+                                </div>
+                                <label className="text-sm font-medium mb-1 block">Amount (₹)</label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g. 500"
+                                    value={amountInput}
+                                    onChange={(e) => setAmountInput(e.target.value)}
+                                    max={balance?.availableBalance}
+                                    min="1"
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setWithdrawOpen(false)}>Cancel</Button>
+                                <Button onClick={handleWithdraw} disabled={!amountInput} className="bg-red-600 hover:bg-red-700 text-white">
+                                    Withdraw via Razorpay
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
@@ -132,6 +272,16 @@ const AdminEarnings = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            <PaymentProcessingModal
+                isOpen={showPaymentModal}
+                onClose={handleClosePaymentModal}
+                status={paymentStatus}
+                amount={amountInput}
+                type={paymentType}
+                payoutId={transactionId}
+                errorMessage={paymentError}
+            />
         </div>
     );
 };

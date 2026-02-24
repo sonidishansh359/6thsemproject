@@ -81,13 +81,15 @@ router.get('/delivery-boy/:orderId', auth, async (req, res) => {
         name: order.user?.name || 'Customer',
         phone: order.user?.phone || '',
         email: order.user?.email || '',
-        address: order.user?.address || ''
+        address: order.user?.address || '',
+        location: order.user?.location
       },
       restaurant: {
         _id: order.restaurant?._id,
         name: order.restaurant?.name || 'Restaurant',
         address: order.restaurant?.address || '',
-        image: order.restaurant?.image || ''
+        image: order.restaurant?.image || '',
+        location: order.restaurant?.location
       },
       items: order.items || [],
       deliveryAddress: order.deliveryAddress || '',

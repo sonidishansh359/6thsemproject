@@ -1160,6 +1160,13 @@ router.put('/:id/delivery-status', auth, async (req, res) => {
 
     // Update internal delivery status for non-delivered status
     order.deliveryStatus = status;
+
+    // Automatically transition the main order status when picked up
+    if (status === 'picked') {
+      order.status = 'out_for_delivery';
+      console.log(`🚀 Order ${order._id} transitioned to out_for_delivery`);
+    }
+
     await order.save();
 
     // If not delivered yet, just update status without OTP

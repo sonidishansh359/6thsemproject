@@ -178,3 +178,35 @@ export const fetchAdminTransactions = async () => {
   });
   return handleResponse<any[]>(res);
 };
+
+export const addAdminMoney = async (amount: number) => {
+  const adminKey = (import.meta as any).env?.VITE_ADMIN_API_KEY || 'quickeats-admin';
+  const token = localStorage.getItem('adminToken');
+
+  const res = await fetch(`${API_BASE_URL}/admin-earnings/add-money`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': adminKey,
+      'x-auth-token': token || ''
+    },
+    body: JSON.stringify({ amount })
+  });
+  return handleResponse<{ message: string; availableBalance: number }>(res);
+};
+
+export const withdrawAdminMoney = async (amount: number) => {
+  const adminKey = (import.meta as any).env?.VITE_ADMIN_API_KEY || 'quickeats-admin';
+  const token = localStorage.getItem('adminToken');
+
+  const res = await fetch(`${API_BASE_URL}/admin-earnings/withdraw`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': adminKey,
+      'x-auth-token': token || ''
+    },
+    body: JSON.stringify({ amount })
+  });
+  return handleResponse<{ message: string; availableBalance: number }>(res);
+};

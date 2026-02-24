@@ -8,7 +8,6 @@ const navItems = [
   { label: "Approvals", to: "/admin/approvals", icon: ShieldCheck },
   { label: "Reviews", to: "/admin/reviews", icon: MessageSquare },
   { label: "Earnings", to: "/admin/earnings", icon: Building2 }, // Using Building2 temporarilly or import Banknote
-  { label: "Live Tracking", to: "/admin/tracking", icon: Radar },
   { label: "Account Ban", to: "/admin/accounts", icon: Ban },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];

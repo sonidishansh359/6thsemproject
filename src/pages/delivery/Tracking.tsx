@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { DeliveryBoyTrackingComponent } from '@/components/tracking/DeliveryBoyTrackingComponent';
 import { AlertCircle } from 'lucide-react';
 import io from 'socket.io-client';
@@ -8,6 +8,10 @@ import { geocodeAddress } from '@/utils/mapUtils';
 
 const DeliveryTracking: React.FC = () => {
   const { orderId } = useParams<{ orderId?: string }>();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const forceTarget = queryParams.get('target');
+
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,33 +113,53 @@ const DeliveryTracking: React.FC = () => {
           restaurantAddress: data.restaurant?.address
         } as any);
 
-        // GEOCODE ADDRESS to get User Location
-        const addressToGeocode = data.deliveryAddress || data.user?.address;
-        if (addressToGeocode) {
-          const coords = await geocodeAddress(addressToGeocode);
-          if (coords) {
-            console.log('📍 Geocoded User Location:', coords);
-            setUserLocation({
-              latitude: coords.lat,
-              longitude: coords.lng
-            });
-          } else {
-            console.warn('⚠️ Could not geocode address:', addressToGeocode);
+        // Determine User Location
+        const userLoc = data.user?.location;
+        if (userLoc?.coordinates && userLoc.coordinates.length === 2 && userLoc.coordinates[0] !== 0) {
+          console.log('📍 Using Backend User Location:', userLoc.coordinates);
+          setUserLocation({
+            latitude: userLoc.coordinates[1], // [lng, lat]
+            longitude: userLoc.coordinates[0]
+          });
+        } else {
+          // Fallback to GEOCODE ADDRESS
+          const addressToGeocode = data.deliveryAddress || data.user?.address;
+          if (addressToGeocode) {
+            const coords = await geocodeAddress(addressToGeocode);
+            if (coords) {
+              console.log('📍 Geocoded User Location:', coords);
+              setUserLocation({
+                latitude: coords.lat,
+                longitude: coords.lng
+              });
+            } else {
+              console.warn('⚠️ Could not geocode address:', addressToGeocode);
+            }
           }
         }
 
-        // GEOCODE ADDRESS to get Restaurant Location
-        const restaurantAddress = data.restaurant?.address;
-        if (restaurantAddress) {
-          const coords = await geocodeAddress(restaurantAddress);
-          if (coords) {
-            console.log('📍 Geocoded Restaurant Location:', coords);
-            setRestaurantLocation({
-              latitude: coords.lat,
-              longitude: coords.lng
-            });
-          } else {
-            console.warn('⚠️ Could not geocode restaurant address:', restaurantAddress);
+        // Determine Restaurant Location
+        const restLoc = data.restaurant?.location;
+        if (restLoc?.coordinates && restLoc.coordinates.length === 2 && restLoc.coordinates[0] !== 0) {
+          console.log('📍 Using Backend Restaurant Location:', restLoc.coordinates);
+          setRestaurantLocation({
+            latitude: restLoc.coordinates[1], // [lng, lat]
+            longitude: restLoc.coordinates[0]
+          });
+        } else {
+          // Fallback to GEOCODE ADDRESS
+          const restaurantAddress = data.restaurant?.address;
+          if (restaurantAddress) {
+            const coords = await geocodeAddress(restaurantAddress);
+            if (coords) {
+              console.log('📍 Geocoded Restaurant Location:', coords);
+              setRestaurantLocation({
+                latitude: coords.lat,
+                longitude: coords.lng
+              });
+            } else {
+              console.warn('⚠️ Could not geocode restaurant address:', restaurantAddress);
+            }
           }
         }
 
@@ -278,8 +302,16 @@ const DeliveryTracking: React.FC = () => {
   // If status is 'out_for_delivery' -> Target: User
   const isPickupPhase = ['accepted', 'preparing', 'cooking', 'ready_for_pickup', 'arrived_at_restaurant'].includes((orderInfo as any)?.status || '');
 
-  const targetLocation = isPickupPhase ? restaurantLocation : userLocation;
-  const targetType = isPickupPhase ? 'restaurant' : 'user';
+  let targetLocation = isPickupPhase ? restaurantLocation : userLocation;
+  let targetType: 'restaurant' | 'user' = isPickupPhase ? 'restaurant' : 'user';
+
+  if (forceTarget === 'restaurant') {
+    targetLocation = restaurantLocation;
+    targetType = 'restaurant';
+  } else if (forceTarget === 'user') {
+    targetLocation = userLocation;
+    targetType = 'user';
+  }
 
   console.log('🚀 Rendering DeliveryBoyTrackingComponent with:', {
     orderId,

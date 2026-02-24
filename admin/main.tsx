@@ -15,7 +15,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminRestaurants from "./pages/AdminRestaurants";
 import AdminReviews from "./pages/AdminReviews";
 import AdminEarnings from "./pages/AdminEarnings";
-import AdminTracking from "./pages/AdminTracking";
 import AdminAccounts from "./pages/AdminAccounts";
 import AdminSettings from './pages/Settings';
 
@@ -41,7 +40,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                                     <Route path="approvals" element={<AdminRestaurants />} />
                                     <Route path="reviews" element={<AdminReviews />} />
                                     <Route path="earnings" element={<AdminEarnings />} />
-                                    <Route path="tracking" element={<AdminTracking />} />
                                     <Route path="accounts" element={<AdminAccounts />} />
                                     <Route path="settings" element={<AdminSettings />} />
                                 </Route>
