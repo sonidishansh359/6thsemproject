@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAdminAuth } from '../../admin/AdminAuthContext';
-import { Save, Loader2, DollarSign } from 'lucide-react';
+import { Save, Loader2, IndianRupee } from 'lucide-react';
 
 const Settings = () => {
     const [commissionRate, setCommissionRate] = useState<string>('15');
@@ -99,7 +99,7 @@ const Settings = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <DollarSign className="w-5 h-5" />
+                            <IndianRupee className="w-5 h-5" />
                             Commission Configuration
                         </CardTitle>
                         <CardDescription>

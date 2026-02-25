@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { fetchAdminBalance, fetchAdminTransactions, addAdminMoney, withdrawAdminMoney } from "../lib/adminApi";
-import { Loader2, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, Minus } from "lucide-react";
+import { Loader2, IndianRupee, ArrowUpRight, ArrowDownLeft, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentProcessingModal } from "@/components/ui/PaymentProcessingModal";
 
@@ -197,7 +197,7 @@ const AdminEarnings = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <IndianRupee className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">₹{balance?.availableBalance?.toFixed(2) || '0.00'}</div>
@@ -208,7 +208,7 @@ const AdminEarnings = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Lifetime Earnings</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <IndianRupee className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">₹{balance?.totalEarnings?.toFixed(2) || '0.00'}</div>

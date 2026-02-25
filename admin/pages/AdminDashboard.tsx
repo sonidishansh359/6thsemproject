@@ -39,7 +39,6 @@ const AdminDashboard = () => {
     totalRestaurants: stats ? numberFormatter.format(stats.totalRestaurants || 0) : "—",
     happyCustomers: stats ? numberFormatter.format(stats.happyCustomers || 0) : "—",
     averageDelivery: stats ? `${stats.averageDelivery || 0} mins` : "—",
-    totalRevenue: stats && typeof stats.totalRevenue === "number" ? currencyFormatter.format(stats.totalRevenue) : "—",
   }), [stats]);
 
   const recentRestaurants = useMemo(() => (restaurants || []).slice(0, 5), [restaurants]);
@@ -62,7 +61,6 @@ const AdminDashboard = () => {
         <MetricCard title="Restaurants" value={derived.totalRestaurants} icon={Building2} helper="Across all cities" />
         <MetricCard title="Customers" value={derived.happyCustomers} icon={Users} helper="Registered users" />
         <MetricCard title="Avg Delivery" value={derived.averageDelivery} icon={Clock} helper="Calculated from delivered orders" />
-        <MetricCard title="Earnings" value={derived.totalRevenue} icon={Activity} helper="Delivered orders revenue" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
