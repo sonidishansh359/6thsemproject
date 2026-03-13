@@ -99,7 +99,7 @@ async function aggregateOwnerReport(owner, dateRange) {
     const cancelledByWho = { customer: 0, restaurant: 0 };
 
     orders.forEach(o => {
-        const amount = o.ownerEarning || (o.totalAmount * 0.85);
+        const earnings = o.ownerEarning || (o.totalAmount * 0.85);
         const date = new Date(o.createdAt).toISOString().slice(0, 10);
 
         // Payment method tally
@@ -107,18 +107,18 @@ async function aggregateOwnerReport(owner, dateRange) {
         paymentMethodMap[pm] = (paymentMethodMap[pm] || 0) + 1;
 
         if (o.status === 'delivered') {
-            totalRevenue += o.totalAmount;
-            totalEarning += amount;
+            totalRevenue += earnings;
+            totalEarning += earnings;
             completedCount++;
-            revenueByDay[date] = (revenueByDay[date] || 0) + amount;
+            revenueByDay[date] = (revenueByDay[date] || 0) + earnings;
         } else if (o.status === 'out_for_delivery' || o.status === 'preparing' || o.status === 'accepted') {
             inProgressCount++;
-            totalRevenue += o.totalAmount; // count as revenue
-            totalEarning += amount;
-            revenueByDay[date] = (revenueByDay[date] || 0) + amount;
+            totalRevenue += earnings; // count as revenue
+            totalEarning += earnings;
+            revenueByDay[date] = (revenueByDay[date] || 0) + earnings;
         } else if (o.status === 'cancelled') {
             cancelledCount++;
-            totalLoss += o.totalAmount;
+            totalLoss += earnings;
             cancelledByWho.customer++;  // simplified: treat all as customer-cancelled
         } else {
             pendingCount++; // placed
@@ -277,7 +277,6 @@ router.get('/export/csv', ownerAuth, async (req, res) => {
         setCell(row, 0, 'Metric'); setCell(row++, 1, 'Value');
         setCell(row, 0, 'Total Orders'); setCell(row++, 1, d.revenue.totalOrders);
         setCell(row, 0, 'Fulfilled Orders'); setCell(row++, 1, d.revenue.fulfilledOrders);
-        setCell(row, 0, 'Total Revenue (₹)'); setCell(row++, 1, d.revenue.totalRevenue);
         setCell(row, 0, 'Owner Earnings (₹)'); setCell(row++, 1, d.revenue.totalEarning);
         setCell(row, 0, 'Potential Loss (₹)'); setCell(row++, 1, d.revenue.totalLoss);
         setCell(row, 0, 'Avg Order Value (₹)'); setCell(row++, 1, d.revenue.avgOrderValue);
@@ -526,19 +525,17 @@ router.get('/export/pdf', ownerAuth, async (req, res) => {
 
         // ── KPI boxes row ──
         cy += 10;
-        const boxW = (PW - M * 2 - 12) / 4;
+        const boxW = (PW - M * 2 - 8) / 3;
         const boxH = 52;
         metricBox(M, cy, boxW, boxH, 'Total Orders', d.revenue.totalOrders, '#eff6ff', C.blue);
         metricBox(M + boxW + 4, cy, boxW, boxH, 'Owner Earnings', `Rs ${d.revenue.totalEarning}`, '#f0fdf4', C.green);
-        metricBox(M + (boxW + 4) * 2, cy, boxW, boxH, 'Total Revenue', `Rs ${d.revenue.totalRevenue}`, '#fff7ed', C.accent);
-        metricBox(M + (boxW + 4) * 3, cy, boxW, boxH, 'Avg Order Value', `Rs ${d.revenue.avgOrderValue}`, '#faf5ff', C.purple);
+        metricBox(M + (boxW + 4) * 2, cy, boxW, boxH, 'Avg Order Value', `Rs ${d.revenue.avgOrderValue}`, '#faf5ff', C.purple);
         cy += boxH + 8;
 
         // 2nd row of KPIs
-        const box2W = (PW - M * 2 - 8) / 3;
-        metricBox(M, cy, box2W, boxH, 'Potential Loss', `Rs ${d.revenue.totalLoss}`, '#fef2f2', C.red);
-        metricBox(M + box2W + 4, cy, box2W, boxH, 'Fulfilled Orders', d.revenue.fulfilledOrders, '#f0fdf4', C.green);
-        metricBox(M + (box2W + 4) * 2, cy, box2W, boxH, 'P/L Ratio', d.revenue.profitLossRatio, '#fff7ed', C.accent);
+        metricBox(M, cy, boxW, boxH, 'Potential Loss', `Rs ${d.revenue.totalLoss}`, '#fef2f2', C.red);
+        metricBox(M + boxW + 4, cy, boxW, boxH, 'Fulfilled Orders', d.revenue.fulfilledOrders, '#f0fdf4', C.green);
+        metricBox(M + (boxW + 4) * 2, cy, boxW, boxH, 'P/L Ratio', d.revenue.profitLossRatio, '#fff7ed', C.accent);
         cy += boxH + 14;
 
         // ── Revenue Section ──
@@ -547,7 +544,6 @@ router.get('/export/pdf', ownerAuth, async (req, res) => {
 
         // text data column
         let textY = cy;
-        kv('Total Revenue', `Rs ${d.revenue.totalRevenue}`, textY, true); textY += 16;
         kv('Owner Earnings', `Rs ${d.revenue.totalEarning}`, textY, true); textY += 16;
         kv('Potential Loss', `Rs ${d.revenue.totalLoss}`, textY); textY += 16;
         kv('Avg Order Value', `Rs ${d.revenue.avgOrderValue}`, textY); textY += 16;

@@ -750,7 +750,11 @@ export function OwnerDataProvider({ children }: { children: ReactNode }) {
       order.status === 'out_for_delivery' || order.status === 'delivered'
     );
 
-    const todayRevenue = validOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const todayRevenue = validOrders.reduce((sum, order) => {
+      // Use ownerEarning if available, otherwise fallback to 85% (assuming 15% admin commission)
+      const earnings = order.ownerEarning || (order.totalAmount * 0.85);
+      return sum + earnings;
+    }, 0);
     const todayItems = validOrders.reduce((sum, order) => sum + order.items.length, 0);
     const pendingOrders = todayOrders.filter(order =>
       order.status === 'placed' || order.status === 'accepted'

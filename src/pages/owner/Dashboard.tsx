@@ -19,7 +19,7 @@ import DrinksImg from '@/assets/drinks.png';
 import { cn } from '@/lib/utils';
 
 const Dashboard: React.FC = () => {
-  const { restaurant, orders, menuItems, getTodayStats, updateOrderStatus, loading, deliveryBoys } = useOwnerData();
+  const { restaurant, orders, menuItems, getTodayStats, updateOrderStatus, loading, deliveryBoys, earnings } = useOwnerData();
   const navigate = useNavigate();
 
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -88,10 +88,10 @@ const Dashboard: React.FC = () => {
   }
 
   const todayStats = getTodayStats();
-  // Only count out_for_delivery and delivered orders in total revenue
+  // Only count out_for_delivery and delivered orders in total revenue (Owner's share)
   const totalRevenue = orders
     .filter(order => order.status === 'out_for_delivery' || order.status === 'delivered')
-    .reduce((sum, order) => sum + order.totalAmount, 0);
+    .reduce((sum, order) => sum + (order.ownerEarning || order.totalAmount * 0.85), 0);
   const totalOrders = orders.length;
   const activeMenuItems = menuItems.filter(item => item.isAvailable).length;
 
@@ -177,7 +177,7 @@ const Dashboard: React.FC = () => {
 
           <motion.div variants={item}>
             <StatCard
-              title="Today's Revenue"
+              title="Today's Earnings"
               value={formatCurrency(todayStats.revenue)}
               icon={IndianRupee}
               trend={{ value: 8, isPositive: true }}
@@ -230,7 +230,7 @@ const Dashboard: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 pt-2">
                 <div className="ml-1">
                   <p className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight mb-3">
-                    {formatCurrency(totalRevenue)}
+                    {formatCurrency(earnings)}
                   </p>
                   <div className="flex gap-6 text-sm">
                     <div className="flex items-center gap-2 text-slate-600">
@@ -300,7 +300,7 @@ const Dashboard: React.FC = () => {
                                 {isCancelled ? 'Cancelled' : order.status.replace(/_/g, ' ').toUpperCase()}
                               </Badge>
                             </div>
-                            <p className="text-sm text-slate-500">Customer: <span className="font-medium text-slate-700">{order.customerName}</span> • Total: <span className="font-medium text-slate-700">{formatCurrency(order.totalAmount)}</span></p>
+                            <p className="text-sm text-slate-500">Customer: <span className="font-medium text-slate-700">{order.customerName}</span> • Earning: <span className="font-medium text-slate-700">{formatCurrency(order.ownerEarning || order.totalAmount * 0.85)}</span></p>
                           </div>
 
                           {/* Action Select removed */}

@@ -161,8 +161,8 @@ const OrdersPage: React.FC = () => {
 
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center text-sm sm:text-base font-semibold text-slate-900 gap-1">
-                    <IndianRupee className="w-3 sm:w-4 h-3 sm:h-4" />
-                    <span>₹{(order.ownerEarning || order.totalAmount).toFixed(2)}</span>
+                    <IndianRupee className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-600" />
+                    <span className="text-emerald-700">Earnings: ₹{(order.ownerEarning || order.totalAmount * 0.85).toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -248,10 +248,8 @@ const OrdersPage: React.FC = () => {
                   <h3 className="font-semibold text-sm sm:text-base mb-2">Order Information</h3>
                   <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
                     <div>Status: <Badge className={`${getStatusColor(selectedOrder.status)} text-xs`}>{selectedOrder.status.replace('_', ' ')}</Badge></div>
-                    <div>Total Order: ₹{selectedOrder.totalAmount.toFixed(2)}</div>
-                    <div className="text-green-600 font-semibold">Your Earning: ₹{(selectedOrder.ownerEarning || selectedOrder.totalAmount).toFixed(2)}</div>
+                    <div className="text-emerald-600 font-bold mb-1">Your Earning: ₹{(selectedOrder.ownerEarning || selectedOrder.totalAmount * 0.85).toFixed(2)}</div>
                     <div>Ordered: {formatDate(selectedOrder.createdAt)}</div>
-                    <div>Last Updated: {formatDate(selectedOrder.updatedAt)}</div>
                   </div>
                 </div>
               </div>
@@ -265,7 +263,6 @@ const OrdersPage: React.FC = () => {
                         <span className="font-medium truncate">{item.name}</span>
                         <span className="text-muted-foreground ml-2">x{item.quantity}</span>
                       </div>
-                      <span className="font-medium whitespace-nowrap">₹{((item.originalPrice || (item.price / 1.15)) * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -284,24 +281,6 @@ const OrdersPage: React.FC = () => {
                 <Button variant="outline" onClick={() => setIsOrderDialogOpen(false)} className="text-xs sm:text-sm">
                   Close
                 </Button>
-                {selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled' && (
-                  <Select
-                    value={selectedOrder.status}
-                    onValueChange={(value: OrderStatus) => handleStatusUpdate(selectedOrder.id, value)}
-                  >
-                    <SelectTrigger className="w-full sm:w-[150px] text-xs sm:text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="placed">Placed</SelectItem>
-                      <SelectItem value="accepted">Accepted</SelectItem>
-                      <SelectItem value="preparing">Preparing</SelectItem>
-                      <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
             </div>
           )}

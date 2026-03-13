@@ -50,7 +50,7 @@ router.get('/earnings', ownerAuth, async (req, res) => {
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: '$totalAmount' },
+          totalRevenue: { $sum: '$ownerEarning' },
           completedOrders: { $sum: 1 }
         }
       }
@@ -60,7 +60,7 @@ router.get('/earnings', ownerAuth, async (req, res) => {
     const completedOrders = stats.length > 0 ? stats[0].completedOrders : 0;
     const avgOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
 
-    console.log(`📊 Stats: Revenue=${totalRevenue}, Orders=${completedOrders}, AOV=${avgOrderValue}`);
+    console.log(`📊 Stats (Excluding Admin Commission): Revenue=${totalRevenue}, Orders=${completedOrders}, AOV=${avgOrderValue}`);
 
     res.json({
       availableBalance: owner.availableBalance || 0,

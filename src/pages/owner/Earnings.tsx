@@ -286,7 +286,7 @@ const EarningsPage: React.FC = () => {
               <DollarSign className="w-24 h-24 -mr-4 -mt-4 text-emerald-600" />
             </div>
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider">Owner Earnings</CardTitle>
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="flex items-baseline gap-1">
