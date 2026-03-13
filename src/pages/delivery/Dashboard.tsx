@@ -17,10 +17,46 @@ import { useDeliveryData } from '@/contexts/DeliveryDataContext';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { AutoLocationStatus } from '@/components/location/AutoLocationStatus';
+import { DeliveryWelcomeModal } from '@/components/delivery/DeliveryWelcomeModal';
+import { DeliveryReportModal } from '@/components/delivery/DeliveryReportModal';
+import { FileText } from 'lucide-react';
 
 export default function DeliveryDashboard() {
   const { profile, orders, activeOrder, earnings, acceptOrder } = useDeliveryData();
   const navigate = useNavigate();
+  const [showWelcomeModal, setShowWelcomeModal] = React.useState(false);
+  const [showReportModal, setShowReportModal] = React.useState(false);
+
+  React.useEffect(() => {
+    // Check if the user has seen the welcome modal before
+    const userId = profile.phone || profile.email || 'unknown';
+    const hasSeenModal = localStorage.getItem(`has_seen_welcome_modal_${userId}`);
+
+    // Check if they just signed up (account created within the last 5 minutes)
+    const isNewSignup = () => {
+      if (!profile.joinedDate) return false;
+
+      // The initially seeded joinedDate is just 'YYYY-MM-DD', which parses to midnight
+      // But the backend will return the full ISO string with time after it loads
+      const joinDate = new Date(profile.joinedDate);
+      const now = new Date();
+      const diffInMinutes = (now.getTime() - joinDate.getTime()) / (1000 * 60);
+
+      // True if the account was created less than 5 minutes ago
+      return diffInMinutes >= 0 && diffInMinutes < 5;
+    };
+
+    // We'll use totalDeliveries === 0 and the fresh joinedDate to know it's a recent signup
+    if (!hasSeenModal && profile.totalDeliveries === 0 && userId !== 'unknown' && isNewSignup()) {
+      setShowWelcomeModal(true);
+    }
+  }, [profile.phone, profile.email, profile.totalDeliveries, profile.joinedDate]);
+
+  const handleCloseWelcomeModal = () => {
+    setShowWelcomeModal(false);
+    const userId = profile.phone || profile.email || 'unknown';
+    localStorage.setItem(`has_seen_welcome_modal_${userId}`, 'true');
+  };
 
   const stats = [
     {
@@ -78,11 +114,22 @@ export default function DeliveryDashboard() {
                 : "Go online to start receiving orders"}
             </p>
           </div>
-          {!profile.isOnline && (
-            <Badge variant="secondary" className="w-fit">
-              Currently Offline
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {!profile.isOnline && (
+              <Badge variant="secondary" className="w-fit">
+                Currently Offline
+              </Badge>
+            )}
+            <Button variant="outline" onClick={() => setShowReportModal(true)} className="hidden sm:flex items-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50">
+              <FileText className="w-4 h-4" />
+              Export Report
+            </Button>
+          </div>
+          {/* Mobile report button */}
+          <Button variant="outline" onClick={() => setShowReportModal(true)} className="sm:hidden w-full flex items-center gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 mt-2">
+            <FileText className="w-4 h-4" />
+            Export Report
+          </Button>
         </div>
 
         {/* Auto Location Status */}
@@ -273,6 +320,17 @@ export default function DeliveryDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <DeliveryWelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={handleCloseWelcomeModal}
+        userName={profile.name}
+      />
+
+      <DeliveryReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+      />
     </DeliveryLayout>
   );
 }

@@ -28,6 +28,7 @@ export interface DeliveryProfile {
   rating: number;
   totalDeliveries: number;
   joinedDate: string;
+  availableBalance?: number;
 }
 
 export interface DeliveryEarnings {
@@ -162,6 +163,7 @@ const createEmptyProfile = (user?: { name?: string; email?: string }): DeliveryP
   rating: 0,
   totalDeliveries: 0,
   joinedDate: new Date().toISOString().slice(0, 10),
+  availableBalance: 0,
 });
 
 const emptyEarnings: DeliveryEarnings = {
@@ -305,6 +307,7 @@ export function DeliveryDataProvider({ children }: { children: ReactNode }) {
           totalDeliveries: data.totalDeliveries || prev.totalDeliveries,
           rating: data.rating || prev.rating,
           joinedDate: data.joinedDate || prev.joinedDate,
+          availableBalance: data.availableBalance || 0,
         }));
 
         // Update earnings from backend (this is the source of truth)
@@ -657,6 +660,9 @@ export function DeliveryDataProvider({ children }: { children: ReactNode }) {
                 }
                 if (data.totalDeliveries !== undefined) {
                   setProfile(prev => ({ ...prev, totalDeliveries: data.totalDeliveries }));
+                }
+                if (data.availableBalance !== undefined) {
+                  setProfile(prev => ({ ...prev, availableBalance: data.availableBalance }));
                 }
                 console.log('✅ Refreshed earnings and history from backend after delivery');
               })

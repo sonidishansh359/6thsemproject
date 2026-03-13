@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Normalize backend role to frontend role naming
       const normalizedRole = data.user.role === 'delivery_boy' ? 'delivery' : data.user.role;
-      
+
       // Check if the role matches (after normalization)
       if (normalizedRole !== role) {
         return { success: false, error: `This account is registered as ${normalizedRole === 'user' ? 'Customer' : normalizedRole === 'owner' ? 'Restaurant Owner' : 'Delivery Partner'}` };
@@ -213,8 +213,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
 
-    // Navigate to auth page
-    window.location.href = '/auth';
+    // Navigate to landing page
+    window.location.href = '/';
   };
 
   const setRole = (role: UserRole) => {

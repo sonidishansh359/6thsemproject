@@ -10,7 +10,7 @@ const AdminLayout = () => {
     <div className="min-h-screen bg-muted/30 text-foreground">
       <div className="flex min-h-screen">
         <div className={sidebarOpen ? "fixed inset-0 z-30 bg-black/40 md:hidden" : "hidden"} onClick={() => setSidebarOpen(false)} />
-        <div className={`z-40 ${sidebarOpen ? "fixed left-0 top-0" : "hidden md:block"}`}>
+        <div className={`z-40 ${sidebarOpen ? "fixed inset-y-0 left-0 h-screen" : "hidden md:sticky md:top-0 md:h-screen md:block"}`}>
           <AdminSidebar />
         </div>
 

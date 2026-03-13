@@ -13,9 +13,10 @@ const orderSchema = new mongoose.Schema({
   deliveryAddress: { type: String, required: true },
   totalAmount: { type: Number, required: true },
   ownerEarning: { type: Number, default: 0 }, // Earning for the restaurant owner (Base Price)
-  adminEarning: { type: Number, default: 0 }, // Earning for admin (15% Markup)
+  adminEarning: { type: Number, default: 0 }, // Earning for admin (15% Markup + Tax)
   subtotal: { type: Number }, // Amount before discount
   discountAmount: { type: Number, default: 0 }, // Discount amount applied
+  taxAmount: { type: Number, default: 0 }, // Tax amount added to order
   promoCode: { type: mongoose.Schema.Types.ObjectId, ref: 'PromoCode' }, // Applied promo code
   specialInstructions: { type: String }, // User's special requests for the order
   paymentMethod: { type: String, enum: ['upi', 'card', 'cod', 'online'], default: 'cod' },

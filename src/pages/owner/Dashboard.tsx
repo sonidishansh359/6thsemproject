@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { StatCard, PageHeader } from '@/components/owner/DashboardComponents';
 import { useOwnerData } from '@/contexts/OwnerDataContext';
-import { ShoppingCart, IndianRupee, Clock, Package, Store, UtensilsCrossed, TrendingUp, Wallet, Plus, Eye, CheckCircle, ChefHat, Truck, X, MapPin, Phone } from 'lucide-react';
+import { ShoppingCart, IndianRupee, Clock, Package, Store, UtensilsCrossed, Wallet, Plus, CheckCircle, ChefHat, Truck, X, MapPin, Phone, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { useNavigate } from 'react-router-dom';
 import { OrderStatus } from '@/types/auth';
 import { AutoLocationStatus } from '@/components/location/AutoLocationStatus';
+import { OwnerReportModal } from '@/components/owner/OwnerReportModal';
 import BurgerImg from '@/assets/burger.png';
 import IceCreamImg from '@/assets/icecream.png';
 import ChineseImg from '@/assets/chinese.png';
@@ -19,6 +21,8 @@ import { cn } from '@/lib/utils';
 const Dashboard: React.FC = () => {
   const { restaurant, orders, menuItems, getTodayStats, updateOrderStatus, loading, deliveryBoys } = useOwnerData();
   const navigate = useNavigate();
+
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -46,6 +50,8 @@ const Dashboard: React.FC = () => {
       console.error('Failed to update order status:', error);
     }
   };
+
+
 
   if (!restaurant) {
     return (
@@ -136,6 +142,14 @@ const Dashboard: React.FC = () => {
             {/* Compact Location Display */}
             <AutoLocationStatus cityOnly={true} />
 
+            <Button
+              variant="outline"
+              className="h-11 border-slate-200 hover:bg-slate-50 text-slate-700"
+              onClick={() => setIsReportOpen(true)}
+            >
+              <BarChart2 className="w-4 h-4 mr-2" /> Export Reports
+            </Button>
+
             <Button variant="outline" className="h-11 border-slate-200 hover:bg-white/80 backdrop-blur-sm" onClick={() => navigate('/owner/orders')}>
               <Clock className="w-4 h-4 mr-2" /> Live Orders
             </Button>
@@ -144,6 +158,9 @@ const Dashboard: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Owner Report Modal */}
+        <OwnerReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -286,24 +303,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-sm text-slate-500">Customer: <span className="font-medium text-slate-700">{order.customerName}</span> • Total: <span className="font-medium text-slate-700">{formatCurrency(order.totalAmount)}</span></p>
                           </div>
 
-                          {/* Action Select */}
-                          {!isCancelled && order.status !== 'delivered' && (
-                            <Select
-                              value={order.status}
-                              onValueChange={(value) => handleStatusUpdate(order.id, value)}
-                            >
-                              <SelectTrigger className="h-10 text-sm w-[160px] bg-white border-slate-200 shadow-sm">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {order.status === 'placed' && <SelectItem value="accepted">Accept Order</SelectItem>}
-                                {order.status === 'accepted' && <SelectItem value="preparing">Start Preparing</SelectItem>}
-                                {order.status === 'preparing' && <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>}
-                                {order.status === 'out_for_delivery' && <SelectItem value="delivered">Mark Delivered</SelectItem>}
-                                <SelectItem value="cancelled" className="text-red-600">Cancel Order</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
+                          {/* Action Select removed */}
                         </div>
 
                         {/* Progress Stepper */}

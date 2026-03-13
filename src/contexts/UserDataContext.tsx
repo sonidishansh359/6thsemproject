@@ -2,8 +2,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Restaurant, MenuItem, OrderItem } from '@/types/auth';
 import { useAuth } from './AuthContext';
 import io from 'socket.io-client';
-import { CheckCircle, TruckIcon, CookingPot, AlertTriangle, XCircle, Clock } from 'lucide-react';
+import { CheckCircle, TruckIcon, CookingPot, AlertTriangle, XCircle, Clock, Bell } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { Button } from '@/components/ui/button';
+import ringAudio from '@/assets/ring.mp3';
 import { locationService } from '@/lib/locationService';
 import { getRestaurantStatus } from '@/utils/restaurantStatus';
 
@@ -41,6 +43,10 @@ export interface UserOrder {
   paymentMethod: 'upi' | 'card' | 'cod' | 'online';
   createdAt: string;
   estimatedDelivery: string;
+  subtotal?: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  promoCode?: any;
   // Delivery partner convenience fields
   deliveryBoyId?: string;
   deliveryBoyName?: string;
@@ -67,7 +73,7 @@ interface UserDataContextType {
   removeFromCart: (menuItemId: string) => void;
   updateCartQuantity: (menuItemId: string, quantity: number) => void;
   clearCart: () => void;
-  placeOrder: (deliveryAddress: string, paymentMethod: 'upi' | 'card' | 'cod' | 'online', specialInstructions?: string, promoCodeId?: string, subtotal?: number, paymentDetails?: any) => Promise<UserOrder>;
+  placeOrder: (deliveryAddress: string, paymentMethod: 'upi' | 'card' | 'cod' | 'online', specialInstructions?: string, promoCodeId?: string, subtotal?: number, paymentDetails?: any, taxAmount?: number) => Promise<UserOrder>;
   getRestaurantById: (id: string) => Restaurant | undefined;
   getMenuByRestaurantId: (restaurantId: string) => MenuItem[];
   setActiveOrder: (order: UserOrder | null) => void;
@@ -119,8 +125,12 @@ const mapBackendOrderToFrontend = (backendOrder: any): UserOrder => {
     totalAmount: backendOrder.totalAmount,
     deliveryAddress: backendOrder.deliveryAddress,
     paymentMethod: backendOrder.paymentMethod || 'cod',
+    subtotal: backendOrder.subtotal,
+    discountAmount: backendOrder.discountAmount,
+    taxAmount: backendOrder.taxAmount,
+    promoCode: backendOrder.promoCode,
     createdAt: backendOrder.createdAt,
-    estimatedDelivery: new Date(Date.now() + 45 * 60000).toISOString(),
+    estimatedDelivery: new Date(Date.now() + (Math.floor(Math.random() * 11) + 15) * 60000).toISOString(),
     deliveryBoyId: backendOrder.deliveryBoy ? (backendOrder.deliveryBoy._id || backendOrder.deliveryBoy) : undefined,
     deliveryBoyName: backendOrder.deliveryBoy && backendOrder.deliveryBoy.user ? backendOrder.deliveryBoy.user.name : undefined,
     // Add real delivery partner details if assigned
@@ -150,7 +160,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const [activeOrder, setActiveOrder] = useState<UserOrder | null>(null);
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isRinging, setIsRinging] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const socketRef = React.useRef<any>(null);
+  const globalAudioRef = React.useRef<HTMLAudioElement | null>(null);
   const locationWatchIdRef = React.useRef<number | null>(null);
 
   // Calculate unread count whenever notifications change
@@ -201,6 +214,31 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       if (user) {
         socket.emit('joinUserRoom', { userId: user.id });
       }
+
+      // Handle global Ring Customer
+      socket.on('ringCustomer', (data) => {
+        console.log('🔔 Global ring customer triggered:', data);
+        setIsRinging(true);
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 200, 300, 200, 300]);
+        }
+
+        try {
+          const audio = new Audio(ringAudio);
+          audio.play().catch(e => console.warn('Global fallback audio play failed:', e));
+        } catch (e) {
+          console.error('Error playing global ring', e);
+        }
+
+        addNotification({
+          type: 'delivery',
+          title: 'Delivery Arrived! 🛎️',
+          message: 'The delivery boy is ringing your doorbell.',
+          icon: CheckCircle,
+          color: 'bg-green-100 text-green-600',
+          link: data.orderId ? `/user/tracking/${data.orderId}` : '/user/orders'
+        });
+      });
 
       // Listen for real-time order status updates from owner
       socket.on('orderStatusUpdate', (data) => {
@@ -555,7 +593,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         image: r.image,
         isOpen: r.isOpen ?? true,
         rating: r.rating ?? 4.5,
-        deliveryTime: r.deliveryTime ?? '25-40 min',
+        deliveryTime: r.deliveryTime ?? '15-25 min',
         minOrder: r.minOrder ?? 10,
         createdAt: r.createdAt,
         openTime: r.openingTime || '10:00',
@@ -744,7 +782,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setCart([]);
 
-  const placeOrder = async (deliveryAddress: string, paymentMethod: 'upi' | 'card' | 'cod' | 'online', specialInstructions?: string, promoCodeId?: string, subtotal?: number, paymentDetails?: any): Promise<UserOrder> => {
+  const placeOrder = async (deliveryAddress: string, paymentMethod: 'upi' | 'card' | 'cod' | 'online', specialInstructions?: string, promoCodeId?: string, subtotal?: number, paymentDetails?: any, taxAmount?: number): Promise<UserOrder> => {
     if (!user || !token) throw new Error('Not authenticated');
 
     const restaurantId = cart[0]?.restaurantId || '';
@@ -756,6 +794,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (promoCodeId) {
       // Note: discount is already calculated on frontend, we just send the total
       totalAmount = orderSubtotal; // Backend will handle discount calculation
+    }
+
+    if (taxAmount) {
+      totalAmount += taxAmount;
     }
 
     console.log('📦 Placing order with data:', {
@@ -770,7 +812,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       deliveryAddress,
       subtotal: orderSubtotal,
       totalAmount,
-      promoCodeId
+      promoCodeId,
+      taxAmount
     });
 
     try {
@@ -795,7 +838,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
           paymentMethod,
           specialInstructions: specialInstructions || '',
           promoCodeId: promoCodeId || null,
-          paymentDetails
+          paymentDetails,
+          taxAmount: taxAmount || 0
         })
       });
 
@@ -817,10 +861,14 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         items: [...cart],
         status: backendOrder.status || 'placed',
         totalAmount,
+        subtotal: backendOrder.subtotal || orderSubtotal,
+        taxAmount: backendOrder.taxAmount || taxAmount || 0,
+        discountAmount: backendOrder.discountAmount || (promoCodeId ? orderSubtotal - totalAmount + (taxAmount || 0) : 0),
+        promoCode: backendOrder.promoCode || promoCodeId,
         deliveryAddress,
         paymentMethod,
         createdAt: backendOrder.createdAt || new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 45 * 60000).toISOString(),
+        estimatedDelivery: new Date(Date.now() + (Math.floor(Math.random() * 11) + 15) * 60000).toISOString(),
         // Delivery partner will be added once a delivery boy is assigned (will be null initially)
         deliveryPartner: undefined,
       };
@@ -879,6 +927,23 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     await fetchNearbyRestaurants();
   };
 
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (!audioEnabled) {
+        // Just playing and pausing a tiny audio to unlock the browser's audio context
+        const audio = new Audio(ringAudio);
+        audio.play().then(() => {
+          audio.pause();
+          setAudioEnabled(true);
+        }).catch(() => {
+          setAudioEnabled(true);
+        });
+      }
+    };
+    window.addEventListener('click', handleGlobalClick, { once: true });
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [audioEnabled]);
+
   return (
     <UserDataContext.Provider value={{
       restaurants,
@@ -904,6 +969,28 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       refreshRestaurants,
     }}>
       {children}
+
+      {/* Global Ringing Modal */}
+      {isRinging && (
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <Bell className="w-12 h-12 text-red-600 animate-bounce" />
+            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Ding Dong!</h2>
+            <p className="text-gray-600 text-lg mb-8 font-medium">Your delivery driver is at the door.</p>
+
+            <Button
+              onClick={() => {
+                setIsRinging(false);
+              }}
+              className="w-full h-14 bg-red-600 hover:bg-red-700 text-white font-bold text-xl rounded-xl shadow-[0_4px_14px_0_rgba(220,38,38,0.39)] transition-all hover:shadow-[0_6px_20px_rgba(220,38,38,0.23)]"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
     </UserDataContext.Provider>
   );
 }

@@ -252,6 +252,12 @@ export default function PromoCodes() {
     show: { opacity: 1, y: 0 }
   };
 
+  const activeCount = promoCodes.filter(p => {
+    if (!p.isActive) return false;
+    if (p.expiryDate && new Date(p.expiryDate) < new Date()) return false;
+    return true;
+  }).length;
+
   return (
     <div className="min-h-screen bg-slate-50/50 p-6 lg:p-10 space-y-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -259,7 +265,7 @@ export default function PromoCodes() {
           <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
             Promo Codes
             <span className="text-sm font-medium px-3 py-1 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
-              {promoCodes.length} Active
+              {activeCount} Active
             </span>
           </h1>
           <p className="text-slate-500 mt-2 text-lg">Boost sales with targeted discount campaigns for <span className="font-semibold text-slate-700">{restaurant?.name}</span></p>
@@ -394,112 +400,117 @@ export default function PromoCodes() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <AnimatePresence>
-            {promoCodes.map((promoCode) => (
-              <motion.div variants={item} layout key={promoCode._id}>
-                <Card className={cn(
-                  "relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group",
-                  promoCode.isActive ? "bg-white" : "bg-slate-50 opacity-75"
-                )}>
-                  {/* Visual Ticket Stub Effect */}
-                  <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-b from-orange-400 to-red-500" />
+            {promoCodes.map((promoCode) => {
+              const isExpired = promoCode.expiryDate ? new Date(promoCode.expiryDate) < new Date() : false;
+              const isTrulyActive = promoCode.isActive && !isExpired;
 
-                  {/* Status Indicator */}
-                  <div className="absolute top-4 right-4">
-                    <Badge variant={promoCode.isActive ? 'default' : 'secondary'} className={cn(
-                      promoCode.isActive ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-slate-200 text-slate-600"
-                    )}>
-                      {promoCode.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
+              return (
+                <motion.div variants={item} layout key={promoCode._id}>
+                  <Card className={cn(
+                    "relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 group",
+                    isTrulyActive ? "bg-white" : "bg-slate-50 opacity-75"
+                  )}>
+                    {/* Visual Ticket Stub Effect */}
+                    <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-b from-orange-400 to-red-500" />
 
-                  <CardContent className="p-6 pl-8">
-                    <div className="mb-4">
-                      <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">Coupon Code</p>
-                      <h3 className={cn(
-                        "text-3xl font-black font-mono tracking-wide selection:bg-orange-100",
-                        promoCode.isActive ? "text-slate-900" : "text-slate-400 line-through"
+                    {/* Status Indicator */}
+                    <div className="absolute top-4 right-4">
+                      <Badge variant={isTrulyActive ? 'default' : 'secondary'} className={cn(
+                        isTrulyActive ? "bg-green-100 text-green-700 hover:bg-green-200" : isExpired ? "bg-red-100 text-red-700" : "bg-slate-200 text-slate-600"
                       )}>
-                        {promoCode.code}
-                      </h3>
+                        {isExpired ? 'Expired' : promoCode.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
                     </div>
 
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="flex flex-col">
-                        <span className="text-4xl font-bold text-slate-800">{promoCode.discountPercentage}%</span>
-                        <span className="text-xs font-bold text-slate-400 uppercase">Discount</span>
+                    <CardContent className="p-6 pl-8">
+                      <div className="mb-4">
+                        <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">Coupon Code</p>
+                        <h3 className={cn(
+                          "text-3xl font-black font-mono tracking-wide selection:bg-orange-100",
+                          isTrulyActive ? "text-slate-900" : "text-slate-400 line-through"
+                        )}>
+                          {promoCode.code}
+                        </h3>
                       </div>
-                      <div className="h-10 w-px bg-slate-200" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-700">₹{promoCode.minOrderAmount}</span>
-                        <span className="text-xs text-slate-400">Min Order</span>
+
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="flex flex-col">
+                          <span className="text-4xl font-bold text-slate-800">{promoCode.discountPercentage}%</span>
+                          <span className="text-xs font-bold text-slate-400 uppercase">Discount</span>
+                        </div>
+                        <div className="h-10 w-px bg-slate-200" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-700">₹{promoCode.minOrderAmount}</span>
+                          <span className="text-xs text-slate-400">Min Order</span>
+                        </div>
                       </div>
-                    </div>
 
-                    {promoCode.description && (
-                      <p className="text-sm text-slate-500 mb-4 line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        {promoCode.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs text-slate-400 mb-6 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-3 h-3" />
-                        Used {promoCode.usageCount} times
-                      </span>
-                      {promoCode.expiryDate && (
-                        <span className="flex items-center gap-1 bg-red-50 text-red-500 px-2 py-0.5 rounded-full">
-                          <Calendar className="w-3 h-3" />
-                          Exp: {new Date(promoCode.expiryDate).toLocaleDateString()}
-                        </span>
+                      {promoCode.description && (
+                        <p className="text-sm text-slate-500 mb-4 line-clamp-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                          {promoCode.description}
+                        </p>
                       )}
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-4 border-t border-slate-100 border-dashed">
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "flex-1 border-slate-200 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors",
-                          copiedCode === promoCode.code && "bg-green-50 border-green-200 text-green-600"
+                      <div className="flex items-center justify-between text-xs text-slate-400 mb-6 font-medium">
+                        <span className="flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          Used {promoCode.usageCount} times
+                        </span>
+                        {promoCode.expiryDate && (
+                          <span className="flex items-center gap-1 bg-red-50 text-red-500 px-2 py-0.5 rounded-full">
+                            <Calendar className="w-3 h-3" />
+                            Exp: {new Date(promoCode.expiryDate).toLocaleDateString()}
+                          </span>
                         )}
-                        onClick={() => handleCopyCode(promoCode.code)}
-                      >
-                        {copiedCode === promoCode.code ? (
-                          <>Copied! <div className="ml-2 w-2 h-2 rounded-full bg-green-500" /></>
-                        ) : (
-                          <><Copy className="w-4 h-4 mr-2" /> Copy Code</>
-                        )}
-                      </Button>
-
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleToggleStatus(promoCode._id)}
-                          title={promoCode.isActive ? "Deactivate" : "Activate"}
-                        >
-                          {promoCode.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteCode(promoCode._id)}
-                          title="Delete Coupon"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
 
-                  {/* Decorative Circles for Ticket Effect */}
-                  <div className="absolute -left-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-slate-50" />
-                  <div className="absolute -right-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-slate-50" />
-                </Card>
-              </motion.div>
-            ))}
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-4 border-t border-slate-100 border-dashed">
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "flex-1 border-slate-200 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-colors",
+                            copiedCode === promoCode.code && "bg-green-50 border-green-200 text-green-600"
+                          )}
+                          onClick={() => handleCopyCode(promoCode.code)}
+                        >
+                          {copiedCode === promoCode.code ? (
+                            <>Copied! <div className="ml-2 w-2 h-2 rounded-full bg-green-500" /></>
+                          ) : (
+                            <><Copy className="w-4 h-4 mr-2" /> Copy Code</>
+                          )}
+                        </Button>
+
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() => handleToggleStatus(promoCode._id)}
+                            title={promoCode.isActive ? "Deactivate" : "Activate"}
+                          >
+                            {promoCode.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteCode(promoCode._id)}
+                            title="Delete Coupon"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+
+                    {/* Decorative Circles for Ticket Effect */}
+                    <div className="absolute -left-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-slate-50" />
+                    <div className="absolute -right-3 top-1/2 -mt-3 w-6 h-6 rounded-full bg-slate-50" />
+                  </Card>
+                </motion.div>
+              )
+            })}
           </AnimatePresence>
         </motion.div>
       )}

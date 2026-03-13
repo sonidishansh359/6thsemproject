@@ -8,13 +8,20 @@ module.exports = async function (req, res, next) {
             return res.status(401).json({ message: 'User not found' });
         }
 
-        if (user.role !== 'admin') {
+        // Allow both 'admin' role, or fallback to checking the known admin email
+        // since some setups might not set the precise 'role' field to 'admin' initially.
+        const isAdminRole = user.role === 'admin';
+        const isAdminEmail = user.email === 'quickeatsfoodadmin@gmail.com';
+
+        if (!isAdminRole && !isAdminEmail) {
             return res.status(403).json({ message: 'Access denied. Admin only.' });
         }
 
+        // Keep a reference to the admin user
+        req.adminUser = user;
         next();
     } catch (err) {
-        console.error(err.message);
+        console.error('Admin Auth Middleware Error:', err.message);
         res.status(500).send('Server Error');
     }
 };

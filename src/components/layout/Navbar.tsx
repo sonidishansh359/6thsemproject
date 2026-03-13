@@ -63,7 +63,7 @@ const Navbar = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            <Link to="/auth">
+            <Link to="/">
               <Button variant="ghost" size="icon" className="hidden lg:flex">
                 <User className="w-5 h-5" />
               </Button>
@@ -131,7 +131,7 @@ const Navbar = () => {
                   </Link>
                 ))}
 
-                <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/" onClick={() => setIsMenuOpen(false)}>
                   <Button variant="outline" className="w-full justify-start gap-2">
                     <User className="w-4 h-4" />
                     Sign In

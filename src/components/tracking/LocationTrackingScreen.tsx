@@ -2,9 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAutoLocation } from '@/hooks/useAutoLocation';
 import { LiveTrackingMap } from '@/components/tracking/LiveTrackingMap';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Navigation, MapPin, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Navigation, MapPin, Clock, Volume2, Bell } from 'lucide-react';
 import io from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import ringAudio from '@/assets/ring.mp3';
 
 interface OrderTrackingData {
   orderId: string;
@@ -71,6 +74,7 @@ export const LocationTrackingScreen: React.FC<LocationTrackingScreenProps> = ({
   const [orderStatus, setOrderStatus] = useState<string>('');
   const socketRef = useRef<any>(null);
   const { token: authToken, user } = useAuth();
+  const { toast } = useToast();
 
   // Use autoLocationError if userLocation is not set, just to show something if needed,
   // but better to rely on order data error.
@@ -383,7 +387,8 @@ export const LocationTrackingScreen: React.FC<LocationTrackingScreenProps> = ({
       setDistance(dist);
 
       const calculatedEta = SPEED_TO_ETA(dist, speed);
-      setEta(Math.max(1, Math.round(calculatedEta)));
+      // Cap at 25 minutes as per requirements
+      setEta(Math.min(25, Math.max(1, Math.round(calculatedEta))));
     }
   }, [userLocation, deliveryBoyLocation, speed]);
 

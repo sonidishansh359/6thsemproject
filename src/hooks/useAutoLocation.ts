@@ -34,12 +34,8 @@ export function useAutoLocation() {
         return null;
       }
 
-      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`;
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&email=contact@quickeats.com`;
+      const response = await fetch(url);
       if (!response.ok) return null;
       const data = await response.json();
       const addr = data.address || {};
@@ -73,30 +69,10 @@ export function useAutoLocation() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          console.log('📍 Restoring frozen location from storage:', parsed);
+          console.log('📍 Restoring previous location from storage as initial value:', parsed);
 
           setLocation(parsed);
-          hasUpdatedRef.current = true;
-
-          // Still verify/update with backend to ensure session usage is correct
-          // but do NOT start watching for new coords
           locationService.setToken(token);
-          const updatePayload = {
-            latitude: parsed.latitude,
-            longitude: parsed.longitude,
-            address: parsed.address || 'Frozen Location',
-          };
-
-          if (user.role === 'user') {
-            locationService.updateUserLocation(updatePayload).catch(console.error);
-          } else if (user.role === 'owner') {
-            locationService.updateOwnerLocation(updatePayload).catch(console.error);
-          } else if (user.role === 'delivery') {
-            locationService.updateDeliveryBoyLocation(updatePayload).catch(console.error);
-          }
-
-          setIsUpdating(false);
-          return;
         } catch (e) {
           console.error('Failed to parse stored location', e);
           localStorage.removeItem(storageKey);

@@ -33,8 +33,8 @@ router.get('/delivery-boy/:orderId', auth, async (req, res) => {
 
     // Fetch order
     const order = await Order.findById(orderId)
-      .populate('user', 'name phone email address')
-      .populate('restaurant', 'name address image')
+      .populate('user', 'name phone email address location')
+      .populate('restaurant', 'name address image location')
       .populate({
         path: 'deliveryBoy',
         populate: { path: 'user', select: 'name phone email' }

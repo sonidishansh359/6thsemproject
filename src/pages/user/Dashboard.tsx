@@ -54,14 +54,10 @@ const categories = [
 
 // Advanced filter options
 const filterOptions = [
-  { id: 'fastDelivery', name: 'Fast Delivery', icon: Zap, description: 'Delivered in 30 min or less' },
-  { id: 'freeDelivery', name: 'Free Delivery', icon: Truck, description: 'No delivery fee' },
-  { id: 'highRating', name: 'High Rating', icon: Star, description: '4.0+ rating' },
-  { id: 'discounts', name: 'Great Offers', icon: DollarSign, description: 'Discounts & deals' },
-  { id: 'topRated', name: 'Top Rated', icon: Award, description: 'Most popular' },
-  { id: 'new', name: 'New Arrivals', icon: Sparkles, description: 'Recently added' },
-  { id: 'healthy', name: 'Healthy Options', icon: Heart, description: 'Healthy choices' },
-  { id: 'premium', name: 'Premium', icon: Shield, description: 'Premium restaurants' },
+  { id: 'under_100', name: 'Under ₹100', icon: DollarSign, description: 'Budget friendly options' },
+  { id: '100_200', name: '₹100 – ₹200', icon: DollarSign, description: 'Great value meals' },
+  { id: '200_400', name: '₹200 – ₹400', icon: DollarSign, description: 'Premium dining' },
+  { id: 'above_400', name: '₹400+', icon: DollarSign, description: 'Luxury experience' },
 ];
 
 // Sample delivery addresses
@@ -235,11 +231,20 @@ export default function UserDashboard() {
     // Filter by search query
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      result = result.filter(restaurant =>
-        restaurant.name.toLowerCase().includes(query) ||
-        restaurant.cuisine.toLowerCase().includes(query) ||
-        restaurant.description?.toLowerCase().includes(query)
-      );
+      result = result.filter(restaurant => {
+        const matchesRestaurant =
+          restaurant.name.toLowerCase().includes(query) ||
+          restaurant.cuisine.toLowerCase().includes(query) ||
+          restaurant.description?.toLowerCase().includes(query);
+
+        const matchesMenuItem = menuItems.some(item =>
+          item.restaurantId === restaurant.id &&
+          ((item.name && item.name.toLowerCase().includes(query)) ||
+            (item.description && item.description.toLowerCase().includes(query)))
+        );
+
+        return matchesRestaurant || matchesMenuItem;
+      });
     }
 
     // Note: Cuisine filtering is now handled by backend via refreshRestaurants
@@ -254,35 +259,29 @@ export default function UserDashboard() {
     }
 
 
-    // Apply advanced filters
-    activeFilters.forEach(filter => {
-      switch (filter) {
-        case 'fastDelivery':
-          result = result.filter(r => parseInt(r.deliveryTime) <= 30);
-          break;
-        case 'freeDelivery':
-          result = result.filter(r => r.deliveryFee === 0 || r.deliveryFee === undefined);
-          break;
-        case 'highRating':
-          result = result.filter(r => r.rating >= 4.0);
-          break;
-        case 'discounts':
-          result = result.filter(r => r.discount || r.hasOffers);
-          break;
-        case 'topRated':
-          result = result.filter(r => r.rating >= 4.5);
-          break;
-        case 'new':
-          result = result.filter(r => r.isNew);
-          break;
-        case 'healthy':
-          result = result.filter(r => r.healthyOptions);
-          break;
-        case 'premium':
-          result = result.filter(r => r.isPremium);
-          break;
-      }
-    });
+    // Apply Price Range filters
+    if (activeFilters.length > 0) {
+      result = result.filter(restaurant => {
+        // Find items belonging to this restaurant to determine its price bracket
+        const rItems = menuItems.filter(item => item.restaurantId === restaurant.id);
+
+        // If no items, we can't accurately price it, but we'll include it or assume an average.
+        // For accurate filtering, if we don't have items, we might exclude it, but let's be safe.
+        if (rItems.length === 0) return true;
+
+        // Calculate average item price for the restaurant to categorize it
+        const avgPrice = rItems.reduce((sum, item) => sum + item.price, 0) / rItems.length;
+
+        // Check against active filters
+        return activeFilters.some(filter => {
+          if (filter === 'under_100') return avgPrice < 100;
+          if (filter === '100_200') return avgPrice >= 100 && avgPrice <= 200;
+          if (filter === '200_400') return avgPrice > 200 && avgPrice <= 400;
+          if (filter === 'above_400') return avgPrice > 400;
+          return false;
+        });
+      });
+    }
 
     // Inject isOpen property dynamically
     result = result.map(r => {
@@ -302,7 +301,7 @@ export default function UserDashboard() {
       };
     });
     setFilteredRestaurants(result);
-  }, [searchQuery, activeFilters, restaurants]);
+  }, [searchQuery, activeFilters, restaurants, menuItems]);
 
   // Toggle showing all categories
   const toggleShowAllCategories = () => {
@@ -1365,7 +1364,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Filter Dropdown & Veg Toggle Container */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-center relative">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-center relative z-50">
             <div className="relative w-full sm:w-auto">
               <button
                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
@@ -1373,7 +1372,7 @@ export default function UserDashboard() {
               >
                 <div className="flex items-center gap-3">
                   <Filter className="w-5 h-5 text-[#FF7A00]" />
-                  <span>Filter by Features</span>
+                  <span>Price Range</span>
                   {activeFilters.length > 0 && (
                     <span className="px-2 py-0.5 bg-[#FF7A00] text-white text-xs font-medium rounded-full">
                       {activeFilters.length} selected
@@ -1389,53 +1388,44 @@ export default function UserDashboard() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden"
+                  className="absolute top-full left-0 right-auto mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden min-w-[300px]"
                 >
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900">Select Features</h3>
+                      <h3 className="font-semibold text-gray-900">Select Price Range</h3>
                       {activeFilters.length > 0 && (
                         <button
                           onClick={clearFilters}
                           className="text-sm text-[#FF7A00] hover:text-[#FF7A00]/80 font-medium"
                         >
-                          Clear All
+                          Clear Selection
                         </button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 gap-2">
                       {filterOptions.map((filter) => {
-                        const Icon = filter.icon;
                         const isActive = activeFilters.includes(filter.id);
                         return (
                           <button
                             key={filter.id}
-                            onClick={() => handleFilterToggle(filter.id)}
-                            className={`group p-4 rounded-lg border transition-all duration-200 ${isActive
+                            onClick={() => {
+                              // Make it behaves like radio group (single select) for better UX
+                              setActiveFilters(isActive ? [] : [filter.id]);
+                            }}
+                            className={`group p-3 rounded-lg border transition-all duration-200 text-left flex items-center justify-between ${isActive
                               ? 'border-[#FF7A00] bg-orange-50'
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                               }`}
                           >
-                            <div className="flex flex-col items-center gap-3">
-                              <div className={`p-3 rounded-lg ${isActive ? 'bg-[#FF7A00]' : 'bg-gray-100 group-hover:bg-orange-100'
-                                }`}>
-                                <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-[#FF7A00]'}`} />
+                            <div className="flex items-center gap-3">
+                              <div className={`text-base font-semibold ${isActive ? 'text-[#FF7A00]' : 'text-gray-700'}`}>
+                                {filter.name}
                               </div>
-                              <div className="text-center">
-                                <span className={`text-sm font-semibold block ${isActive ? 'text-[#FF7A00]' : 'text-gray-700'
-                                  }`}>
-                                  {filter.name}
-                                </span>
-                                <span className="text-xs text-gray-500 mt-1 block">
-                                  {filter.description}
-                                </span>
-                              </div>
-                              {isActive && (
-                                <div className="absolute top-2 right-2 w-6 h-6 bg-[#FF7A00] rounded-full flex items-center justify-center">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                              )}
+                            </div>
+                            {/* Radio button indicator */}
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isActive ? 'border-[#FF7A00]' : 'border-gray-300'}`}>
+                              {isActive && <div className="w-2.5 h-2.5 bg-[#FF7A00] rounded-full" />}
                             </div>
                           </button>
                         );
@@ -1702,6 +1692,52 @@ export default function UserDashboard() {
                         </div>
                       </div>
                     </Link>
+                    {/* Matching Menu Items Display (Appears when price filter is active) */}
+                    {activeFilters.length > 0 && (
+                      <div className="mt-3 bg-orange-50/50 rounded-xl p-3 border border-orange-100">
+                        <p className="text-xs font-semibold text-orange-800 mb-2 uppercase tracking-wide">
+                          Matching Items ({menuItems.filter(item => {
+                            if (item.restaurantId !== restaurant.id) return false;
+                            return activeFilters.some(filter => {
+                              if (filter === 'under_100') return item.price < 100;
+                              if (filter === '100_200') return item.price >= 100 && item.price <= 200;
+                              if (filter === '200_400') return item.price > 200 && item.price <= 400;
+                              if (filter === 'above_400') return item.price > 400;
+                              return false;
+                            });
+                          }).length})
+                        </p>
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide py-1">
+                          {menuItems.filter(item => {
+                            if (item.restaurantId !== restaurant.id) return false;
+                            return activeFilters.some(filter => {
+                              if (filter === 'under_100') return item.price < 100;
+                              if (filter === '100_200') return item.price >= 100 && item.price <= 200;
+                              if (filter === '200_400') return item.price > 200 && item.price <= 400;
+                              if (filter === 'above_400') return item.price > 400;
+                              return false;
+                            });
+                          }).map(item => (
+                            <div key={item.id} className="flex-shrink-0 w-48 bg-white border border-orange-200 rounded-lg overflow-hidden flex shadow-sm hover:shadow-md transition-shadow">
+                              {item.image && (
+                                <img src={item.image} alt={item.name} className="w-16 h-16 object-cover" />
+                              )}
+                              <div className="p-2 flex flex-col justify-center flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
+                                <div className="flex items-center gap-1 mt-1">
+                                  {item.dietaryType === 'Veg' ? (
+                                    <span className="w-2.5 h-2.5 rounded-sm border border-green-600 flex items-center justify-center"><span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span></span>
+                                  ) : (
+                                    <span className="w-2.5 h-2.5 rounded-sm border border-red-600 flex items-center justify-center"><span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span></span>
+                                  )}
+                                  <p className="text-[#FF7A00] font-bold text-sm">₹{item.price}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -1860,6 +1896,52 @@ export default function UserDashboard() {
                       </div>
                     </div>
                   </Link>
+                  {/* Matching Menu Items Display (Appears when price filter is active) */}
+                  {activeFilters.length > 0 && (
+                    <div className="mt-3 bg-orange-50/50 rounded-xl p-3 border border-orange-100">
+                      <p className="text-xs font-semibold text-orange-800 mb-2 uppercase tracking-wide">
+                        Matching Items ({menuItems.filter(item => {
+                          if (item.restaurantId !== restaurant.id) return false;
+                          return activeFilters.some(filter => {
+                            if (filter === 'under_100') return item.price < 100;
+                            if (filter === '100_200') return item.price >= 100 && item.price <= 200;
+                            if (filter === '200_400') return item.price > 200 && item.price <= 400;
+                            if (filter === 'above_400') return item.price > 400;
+                            return false;
+                          });
+                        }).length})
+                      </p>
+                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide py-1">
+                        {menuItems.filter(item => {
+                          if (item.restaurantId !== restaurant.id) return false;
+                          return activeFilters.some(filter => {
+                            if (filter === 'under_100') return item.price < 100;
+                            if (filter === '100_200') return item.price >= 100 && item.price <= 200;
+                            if (filter === '200_400') return item.price > 200 && item.price <= 400;
+                            if (filter === 'above_400') return item.price > 400;
+                            return false;
+                          });
+                        }).map(item => (
+                          <div key={item.id} className="flex-shrink-0 w-48 bg-white border border-orange-200 rounded-lg overflow-hidden flex shadow-sm hover:shadow-md transition-shadow">
+                            {item.image && (
+                              <img src={item.image} alt={item.name} className="w-16 h-16 object-cover" />
+                            )}
+                            <div className="p-2 flex flex-col justify-center flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                {item.dietaryType === 'Veg' ? (
+                                  <span className="w-2.5 h-2.5 rounded-sm border border-green-600 flex items-center justify-center"><span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span></span>
+                                ) : (
+                                  <span className="w-2.5 h-2.5 rounded-sm border border-red-600 flex items-center justify-center"><span className="w-1.5 h-1.5 bg-red-600 rounded-full"></span></span>
+                                )}
+                                <p className="text-[#FF7A00] font-bold text-sm">₹{item.price}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>
@@ -1888,8 +1970,8 @@ export default function UserDashboard() {
             </div>
           )}
         </motion.section>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
 

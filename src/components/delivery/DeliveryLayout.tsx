@@ -67,7 +67,7 @@ export function DeliveryLayout({ children }: DeliveryLayoutProps) {
         setShowNotifications(false);
       }
     };
-    
+
     if (showNotifications) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -87,7 +87,7 @@ export function DeliveryLayout({ children }: DeliveryLayoutProps) {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
+    navigate('/');
   };
 
   return (
@@ -331,7 +331,7 @@ export function DeliveryLayout({ children }: DeliveryLayoutProps) {
                           </button>
                         )}
                       </div>
-                      
+
                       {/* Notifications List */}
                       <div className="max-h-96 overflow-y-auto">
                         {notifications.length === 0 ? (
@@ -373,7 +373,7 @@ export function DeliveryLayout({ children }: DeliveryLayoutProps) {
                           ))
                         )}
                       </div>
-                      
+
                       {/* Footer */}
                       {notifications.length > 0 && (
                         <div className="p-3 border-t border-border bg-muted/30 text-center">

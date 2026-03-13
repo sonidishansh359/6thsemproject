@@ -63,7 +63,7 @@ const createUserIcon = () => {
             "></div>
         </div>`,
     iconSize: [40, 50],
-    iconAnchor: [20, 50]
+    iconAnchor: [20, 48]
   });
 };
 
@@ -97,7 +97,7 @@ const createDeliveryBoyIcon = () => {
             "></div>
         </div>`,
     iconSize: [40, 50],
-    iconAnchor: [20, 50]
+    iconAnchor: [20, 48]
   });
 };
 
@@ -131,7 +131,7 @@ const createRestaurantIcon = () => {
             "></div>
         </div>`,
     iconSize: [40, 50],
-    iconAnchor: [20, 50]
+    iconAnchor: [20, 48]
   });
 };
 
@@ -303,6 +303,15 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
       const start = { lat: deliveryBoyLocation.latitude, lng: deliveryBoyLocation.longitude };
       const end = { lat: userLocation.latitude, lng: userLocation.longitude };
 
+      const distance = L.latLng(start.lat, start.lng).distanceTo(L.latLng(end.lat, end.lng));
+      
+      if (distance < 20) {
+        if (polylineRef.current && map.hasLayer(polylineRef.current)) {
+          map.removeLayer(polylineRef.current);
+        }
+        return;
+      }
+
       try {
         // Fetch real road path
         const pathPoints = await fetchRoute(start, end);
@@ -311,14 +320,20 @@ export const LiveTrackingMap: React.FC<LiveTrackingMapProps> = ({
         if (pathPoints && pathPoints.length > 0) {
           // console.log(`✅ Route fetched with ${pathPoints.length} points`);
 
+          const fullPath: L.LatLngExpression[] = [
+            [start.lat, start.lng],
+            ...pathPoints,
+            [end.lat, end.lng]
+          ];
+
           if (polylineRef.current) {
             // Check if polyline is on map
             if (!map.hasLayer(polylineRef.current)) {
               polylineRef.current.addTo(map);
             }
-            polylineRef.current.setLatLngs(pathPoints);
+            polylineRef.current.setLatLngs(fullPath);
           } else {
-            polylineRef.current = L.polyline(pathPoints, {
+            polylineRef.current = L.polyline(fullPath, {
               color: '#2563eb', // Blue-600
               weight: 5,
               opacity: 0.8,

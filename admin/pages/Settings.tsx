@@ -9,6 +9,7 @@ import { Save, Loader2, IndianRupee } from 'lucide-react';
 
 const Settings = () => {
     const [commissionRate, setCommissionRate] = useState<string>('15');
+    const [taxRate, setTaxRate] = useState<string>('5');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const { token } = useAdminAuth();
@@ -28,6 +29,9 @@ const Settings = () => {
             if (response.ok) {
                 const data = await response.json();
                 setCommissionRate(data.commissionRate.toString());
+                if (data.taxRate !== undefined) {
+                    setTaxRate(data.taxRate.toString());
+                }
             }
         } catch (error) {
             console.error('Error fetching settings:', error);
@@ -44,11 +48,20 @@ const Settings = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const rate = parseFloat(commissionRate);
-            if (isNaN(rate) || rate < 0 || rate > 100) {
+            const commRate = parseFloat(commissionRate);
+            const tRate = parseFloat(taxRate);
+            if (isNaN(commRate) || commRate < 0 || commRate > 100) {
                 toast({
                     title: "Invalid Input",
                     description: "Commission rate must be between 0 and 100",
+                    variant: "destructive"
+                });
+                return;
+            }
+            if (isNaN(tRate) || tRate < 0 || tRate > 100) {
+                toast({
+                    title: "Invalid Input",
+                    description: "Tax rate must be between 0 and 100",
                     variant: "destructive"
                 });
                 return;
@@ -60,7 +73,7 @@ const Settings = () => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify({ commissionRate: rate })
+                body: JSON.stringify({ commissionRate: commRate, taxRate: tRate })
             });
 
             if (response.ok) {
@@ -127,7 +140,27 @@ const Settings = () => {
                             </p>
                         </div>
 
-                        <Button onClick={handleSave} disabled={saving}>
+                        <div className="grid w-full items-center gap-1.5 pt-4 border-t">
+                            <Label htmlFor="tax">Tax Rate (%)</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    id="tax"
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                    value={taxRate}
+                                    onChange={(e) => setTaxRate(e.target.value)}
+                                    className="max-w-[200px]"
+                                />
+                                <span className="text-muted-foreground">%</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Example: Rate is 5%, it will be applied on the final total of the user's order.
+                            </p>
+                        </div>
+
+                        <Button onClick={handleSave} disabled={saving} className="mt-4">
                             {saving ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

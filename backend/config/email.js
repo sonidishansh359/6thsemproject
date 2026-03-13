@@ -827,9 +827,15 @@ const sendOrderReceiptEmail = async (email, userName, order, items) => {
                   <td style="padding: 5px 0; color: #718096;">Subtotal</td>
                   <td style="padding: 5px 0; text-align: right; font-weight: 600;">₹${(order.subtotal || order.totalAmount).toFixed(2)}</td>
                 </tr>
+                ${order.taxAmount && order.taxAmount > 0 ? `
+                <tr>
+                  <td style="padding: 5px 0; color: #718096;">GST & Handling</td>
+                  <td style="padding: 5px 0; text-align: right; font-weight: 600;">₹${order.taxAmount.toFixed(2)}</td>
+                </tr>
+                ` : ''}
                 ${order.discountAmount > 0 ? `
                 <tr>
-                  <td style="padding: 5px 0; color: #38a169;">Discount</td>
+                  <td style="padding: 5px 0; color: #38a169;">Promo Discount</td>
                   <td style="padding: 5px 0; text-align: right; color: #38a169; font-weight: 600;">-₹${order.discountAmount.toFixed(2)}</td>
                 </tr>
                 ` : ''}

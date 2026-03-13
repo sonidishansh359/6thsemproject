@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, Loader2, Wallet } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 interface PaymentProcessingModalProps {
     isOpen: boolean;
@@ -25,6 +25,7 @@ export const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && status !== 'processing' && onClose()}>
             <DialogContent className="sm:max-w-md border-0 bg-transparent shadow-none p-0 flex items-center justify-center pointer-events-none">
+                <DialogTitle className="sr-only">{type === 'withdrawal' ? 'Processing Withdrawal' : 'Processing Payment'}</DialogTitle>
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden pointer-events-auto">
                     <AnimatePresence mode="wait">
                         {status === 'processing' && (

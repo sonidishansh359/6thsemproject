@@ -8,6 +8,13 @@ const systemSettingsSchema = new mongoose.Schema({
         min: 0,
         max: 100
     },
+    taxRate: {
+        type: Number,
+        required: true,
+        default: 5, // Default 5%
+        min: 0,
+        max: 100
+    },
     updatedAt: {
         type: Date,
         default: Date.now
@@ -18,7 +25,7 @@ const systemSettingsSchema = new mongoose.Schema({
 systemSettingsSchema.statics.getSettings = async function () {
     const settings = await this.findOne();
     if (settings) return settings;
-    return await this.create({ commissionRate: 15 });
+    return await this.create({ commissionRate: 15, taxRate: 5 });
 };
 
 module.exports = mongoose.model('SystemSettings', systemSettingsSchema);

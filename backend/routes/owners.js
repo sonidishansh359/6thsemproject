@@ -19,21 +19,32 @@ router.get('/profile', ownerAuth, async (req, res) => {
 // Get owner earnings and profile
 router.get('/earnings', ownerAuth, async (req, res) => {
   try {
-    const owner = await Owner.findById(req.owner.id);
+    const owner = req.owner;
     if (!owner) {
       return res.status(404).json({ message: 'Owner not found' });
     }
 
-    // Find owner's restaurants
-    const restaurants = await Restaurant.find({ owner: owner._id });
-    const restaurantIds = restaurants.map(r => r._id);
+    // Find owner's restaurants - be thorough
+    let restaurantIds = owner.restaurants || [];
+
+    // Fallback: if array is empty, find by owner field
+    if (restaurantIds.length === 0) {
+      const restaurants = await Restaurant.find({ owner: owner._id });
+      restaurantIds = restaurants.map(r => r._id);
+    }
+
+    console.log(`📊 Calculating earnings for Owner: ${owner._id}, Restaurants: ${restaurantIds.length}`);
+
+    const mongoose = require('mongoose');
+    const targetIds = restaurantIds.map(id => new mongoose.Types.ObjectId(id.toString()));
 
     // Calculate Lifetime Stats from Orders
+    // We include 'out_for_delivery' because that's when funds are credited to owner wallet
     const stats = await Order.aggregate([
       {
         $match: {
-          restaurant: { $in: restaurantIds },
-          status: 'delivered'
+          restaurant: { $in: targetIds },
+          status: { $in: ['delivered', 'out_for_delivery'] }
         }
       },
       {
@@ -49,11 +60,14 @@ router.get('/earnings', ownerAuth, async (req, res) => {
     const completedOrders = stats.length > 0 ? stats[0].completedOrders : 0;
     const avgOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
 
+    console.log(`📊 Stats: Revenue=${totalRevenue}, Orders=${completedOrders}, AOV=${avgOrderValue}`);
+
     res.json({
       availableBalance: owner.availableBalance || 0,
-      totalRevenue,
+      earnings: owner.availableBalance || 0, // Backward compatibility for context
+      totalRevenue: parseFloat(totalRevenue.toFixed(2)),
       completedOrders,
-      avgOrderValue,
+      avgOrderValue: parseFloat(avgOrderValue.toFixed(2)),
       bankDetails: owner.bankDetails
     });
   } catch (err) {
@@ -215,6 +229,106 @@ router.post('/payout', ownerAuth, async (req, res) => {
     // If it failed before deduction, no issue. 
     // If failed after deduction but before transaction save... edge case.
     res.status(500).json({ message: 'Server error processing payout' });
+  }
+});
+
+const exportUtils = require('../utils/export.utils');
+
+const getOwnerReportData = async (ownerId) => {
+  const owner = await Owner.findById(ownerId);
+  const restaurants = await Restaurant.find({ owner: owner._id });
+  const restaurantIds = restaurants.map(r => r._id);
+
+  // Fetch all orders for this restaurant
+  const orders = await Order.find({ restaurant: { $in: restaurantIds } }).lean();
+
+  let totalRevenue = 0;
+  let totalEarning = 0;
+  let totalLoss = 0;
+  let completedOrders = 0;
+  let inProgressOrders = 0;
+  let cancelledOrders = 0;
+  let totalOrders = orders.length;
+
+  orders.forEach(o => {
+    const amount = o.finalAmount || o.totalAmount || 0;
+    // Count delivered AND out_for_delivery as profit (restaurant fulfilled)
+    if (o.status === 'delivered' || o.status === 'out_for_delivery') {
+      totalRevenue += amount;
+      totalEarning += (o.ownerEarning || (amount * 0.85));
+      if (o.status === 'delivered') completedOrders += 1;
+      else inProgressOrders += 1;
+    } else if (o.status === 'cancelled') {
+      totalLoss += amount;
+      cancelledOrders += 1;
+    }
+  });
+
+  return [{
+    totalOrders,
+    completedOrders,
+    inProgressOrders,
+    cancelledOrders,
+    totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+    totalProfit: parseFloat(totalEarning.toFixed(2)),
+    totalLoss: parseFloat(totalLoss.toFixed(2)),
+    profitLossRatio: totalLoss > 0
+      ? (totalEarning / totalLoss).toFixed(2)
+      : (totalEarning > 0 ? 'Infinity' : '0.00'),
+    availableBalance: owner.availableBalance || 0
+  }];
+};
+
+const ownerReportHeaders = [
+  { label: 'Completed Orders', value: 'completedOrders', id: 'completedOrders', width: 80 },
+  { label: 'Cancelled Orders', value: 'cancelledOrders', id: 'cancelledOrders', width: 80 },
+  { label: 'Total Sales (₹)', value: 'totalRevenue', id: 'totalRevenue', width: 80 },
+  { label: 'Profit/Earnings (₹)', value: 'totalProfit', id: 'totalProfit', width: 80 },
+  { label: 'Potential Loss (₹)', value: 'totalLoss', id: 'totalLoss', width: 80 },
+  { label: 'P/L Ratio', value: 'profitLossRatio', id: 'profitLossRatio', width: 60 },
+  { label: 'Wallet Balance (₹)', value: 'availableBalance', id: 'availableBalance', width: 80 },
+];
+
+router.get('/report/preview', ownerAuth, async (req, res) => {
+  try {
+    const data = await getOwnerReportData(req.owner.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Error fetching owner report preview:', err);
+    res.status(500).json({ error: 'Failed to fetch preview' });
+  }
+});
+
+router.get('/export/csv', ownerAuth, async (req, res) => {
+  try {
+    const data = await getOwnerReportData(req.owner.id);
+    const csv = exportUtils.generateCSV(data, ownerReportHeaders);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=Owner_Report_${Date.now()}.csv`);
+    res.send(csv);
+  } catch (err) {
+    console.error('Error exporting CSV:', err);
+    res.status(500).json({ error: 'Failed to export CSV' });
+  }
+});
+
+router.get('/export/pdf', ownerAuth, async (req, res) => {
+  try {
+    const data = await getOwnerReportData(req.owner.id);
+    const ownerInfo = await Owner.findById(req.owner.id).populate('user');
+    const ownerName = ownerInfo?.user?.name || 'Owner';
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Owner_Report_${Date.now()}.pdf`);
+
+    // We pass 'PROFIT_LOSS' into title so the utils chart generator hooks into it
+    await exportUtils.generatePDF(res, `Owner PROFIT_LOSS Report`, data, ownerReportHeaders, ownerName);
+  } catch (err) {
+    if (!res.headersSent) {
+      console.error('Error exporting PDF:', err);
+      res.status(500).json({ error: 'Failed to export PDF' });
+    }
   }
 });
 

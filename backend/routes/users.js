@@ -20,7 +20,7 @@ router.get('/profile', auth, async (req, res) => {
 // Update user profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { name, email, profilePicture } = req.body;
+    const { name, email, profilePicture, phone } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -29,6 +29,7 @@ router.put('/profile', auth, async (req, res) => {
 
     user.name = name || user.name;
     user.email = email || user.email;
+    if (phone !== undefined) user.phone = phone;
     if (profilePicture !== undefined) user.profilePicture = profilePicture;
 
     await user.save();

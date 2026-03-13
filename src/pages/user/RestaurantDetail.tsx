@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Star,
@@ -12,12 +12,22 @@ import {
   ShoppingCart,
   Leaf,
   Utensils,
+  Menu as MenuIcon,
+  X,
+  Check,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUserData } from '@/contexts/UserDataContext';
 import { useToast } from '@/hooks/use-toast';
 import { getRestaurantStatus } from '@/utils/restaurantStatus';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -31,6 +41,7 @@ export default function RestaurantDetail() {
   const [nonVegMode, setNonVegMode] = useState(false);
   const [localMenuItems, setLocalMenuItems] = useState<any[]>([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Computed Mode
   const dietaryMode = (vegMode && nonVegMode) || (!vegMode && !nonVegMode) ? 'All' : (vegMode ? 'Veg' : 'NonVeg');
@@ -260,10 +271,43 @@ export default function RestaurantDetail() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 className={cn(
-                  'bg-card border border-border rounded-xl p-4 flex gap-4',
+                  'bg-card border border-border rounded-xl p-4 flex gap-4 relative group',
                   !item.isAvailable && 'opacity-50'
                 )}
               >
+                {/* Share Button Placeholder */}
+                <button
+                  onClick={async () => {
+                    const shareUrl = window.location.href;
+                    const shareTitle = `${item.name} from ${restaurant.name}`;
+                    const shareText = `Check out this amazing ${item.name} for just ₹${item.price.toFixed(2)} at ${restaurant.name}!`;
+
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: shareTitle,
+                          text: shareText,
+                          url: shareUrl,
+                        });
+                      } catch (error) {
+                        console.error('Error sharing:', error);
+                      }
+                    } else {
+                      // Fallback: Copy to clipboard
+                      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                      toast({
+                        title: "Link Copied!",
+                        description: "Item details copied to clipboard to share.",
+                      });
+                    }
+                  }}
+                  className="absolute top-4 right-4 p-2.5 rounded-full bg-secondary text-secondary-foreground transition-all duration-300 hover:bg-primary hover:text-primary-foreground shadow-sm hover:scale-105 active:scale-95 z-10"
+                  aria-label={`Share ${item.name}`}
+                  title="Share Item"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+
                 <div className="relative">
                   <img
                     src={item.image}
@@ -281,10 +325,10 @@ export default function RestaurantDetail() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between pr-10">
                     <div>
                       <h3 className="font-semibold text-foreground">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 pr-2">{item.description}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3">
@@ -369,6 +413,141 @@ export default function RestaurantDetail() {
             </span>
           </Button>
         </motion.div>
+      )}
+
+      {/* Floating Menu Button & Popover */}
+      {localMenuItems.length > 0 && (
+        <div
+          className={cn(
+            "fixed right-6 z-50 flex flex-col items-end gap-4 pointer-events-none",
+            cartCount > 0 ? "bottom-[140px] lg:bottom-28" : "bottom-8 lg:bottom-10"
+          )}
+        >
+          {/* Menu Popover */}
+          <AnimatePresence>
+            {isMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 10, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, scale: 0.8, y: 10, filter: 'blur(10px)' }}
+                transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+                className="bg-card/95 backdrop-blur-3xl rounded-3xl shadow-2xl shadow-primary/20 overflow-hidden border border-border w-72 sm:w-80 origin-bottom-right pointer-events-auto"
+              >
+                {/* Header Gradient Layout */}
+                <div className="bg-primary/5 p-6 pb-4 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[40px] -mr-16 -mt-16" />
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2.5 bg-primary/10 backdrop-blur-md rounded-2xl text-primary shadow-inner">
+                      <Utensils className="w-5 h-5" />
+                    </div>
+                    <span className="text-2xl font-black text-foreground tracking-tight">
+                      Menu
+                    </span>
+                  </div>
+                </div>
+
+                {/* Category List */}
+                <div className="p-3 pt-0 max-h-[50vh] overflow-y-auto scrollbar-hide space-y-1.5 relative z-10">
+                  {categories.map((category, index) => {
+                    const count = category === 'All'
+                      ? localMenuItems.length
+                      : localMenuItems.filter(i => i.category === category).length;
+
+                    const isSelected = selectedCategory === category;
+
+                    return (
+                      <motion.button
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 + 0.05 }}
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setIsMenuOpen(false);
+                          // Scroll to the top of the menu items section smoothly
+                          window.scrollTo({ top: 400, behavior: 'smooth' });
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 relative group overflow-hidden border",
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary"
+                            : "bg-transparent hover:bg-muted border-transparent text-foreground"
+                        )}
+                      >
+                        <div className="flex items-center gap-4 relative z-10 w-full">
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm",
+                            isSelected
+                              ? "bg-white/20 text-white scale-110"
+                              : "bg-secondary text-primary group-hover:bg-primary/20"
+                          )}>
+                            {category === 'All' ? <Utensils className="w-4 h-4" /> : <Leaf className="w-4 h-4" />}
+                          </div>
+
+                          <div className="flex-1 text-left">
+                            <span className={cn(
+                              "block text-base font-extrabold tracking-tight transition-transform duration-300",
+                              !isSelected && "group-hover:translate-x-1"
+                            )}>
+                              {category}
+                            </span>
+                            <span className={cn(
+                              "text-[11px] font-bold uppercase tracking-wider",
+                              isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            )}>
+                              {count} item{count !== 1 && 's'}
+                            </span>
+                          </div>
+
+                          {isSelected && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="bg-white/20 text-white rounded-full p-1"
+                            >
+                              <Check className="w-4 h-4" />
+                            </motion.div>
+                          )}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Floating Action Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pointer-events-auto"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              size="lg"
+              className={cn(
+                "rounded-full shadow-2xl h-[60px] pl-5 pr-6 gap-3 transition-colors border",
+                isMenuOpen
+                  ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 border-border shadow-black/10"
+                  : "bg-primary text-primary-foreground hover:bg-primary/95 shadow-primary/40 border-primary/20"
+              )}
+            >
+              <motion.div
+                initial={false}
+                animate={{ rotate: isMenuOpen ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {isMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+              </motion.div>
+              <span className="font-bold text-sm uppercase tracking-[0.2em] mt-0.5">
+                {isMenuOpen ? 'Close' : 'Menu'}
+              </span>
+            </Button>
+          </motion.div>
+        </div>
       )}
     </div>
   );

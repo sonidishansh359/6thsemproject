@@ -30,13 +30,13 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const token = localStorage.getItem('adminToken');
+    const stored = sessionStorage.getItem(STORAGE_KEY);
+    const token = sessionStorage.getItem('adminToken');
 
     // If we have a session but no token (legacy/mock session), force logout
     if (stored && !token) {
       console.warn("[AdminAuth] Legacy session detected without token. Forcing logout.");
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
       setAdmin(null);
     } else if (stored) {
       console.log("[AdminAuth] Restoring session. Token found:", !!token);
@@ -45,8 +45,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         setAdmin(parsed);
       } catch (err) {
         console.error("Failed to parse admin session", err);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem('adminToken');
+        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem('adminToken');
       }
     }
     setIsLoading(false);
@@ -77,7 +77,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
       // The backend login returns { token }. We can fetch user profile to check role or trust it works.
 
       // Store token for API calls
-      localStorage.setItem('adminToken', data.token);
+      sessionStorage.setItem('adminToken', data.token);
 
       const session: AdminSession = {
         email: email,
@@ -85,7 +85,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
         role: "admin",
       };
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
       setAdmin(session);
       return { success: true };
     } catch (err) {
@@ -96,8 +96,8 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('adminToken');
+    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem('adminToken');
     setAdmin(null);
   }, []);
 
@@ -106,7 +106,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
       admin,
       isAuthenticated: !!admin,
       isLoading,
-      token: localStorage.getItem('adminToken'),
+      token: sessionStorage.getItem('adminToken'),
       login,
       logout,
     }),

@@ -49,18 +49,26 @@ export default function CheckoutSuccess() {
   const getFormattedEstimatedTime = () => {
     if (!order?.estimatedDelivery) return "Calculating...";
     try {
-      // Assuming order.estimatedDelivery is an ISO string like "2026-02-25T11:45:00.000Z"
-      const date = new Date(order.estimatedDelivery);
+      const now = new Date();
+      const maxDeliveryTime = new Date(now.getTime() + 25 * 60 * 1000); // 25 mins from now
 
-      // If the estimated delivery is somehow invalid or in the past excessively, 
-      // fallback to a dynamic 30-45 mins from now.
-      if (isNaN(date.getTime())) {
-        return "30-45 minutes";
+      let date = new Date(order.estimatedDelivery);
+
+      // If invalid or in the past, or > 25 mins from now, adjust it
+      if (isNaN(date.getTime()) || date.getTime() < now.getTime()) {
+        // Use a random time between 15-22 minutes for a realistic "within 25 mins" look
+        const randomMins = Math.floor(Math.random() * 8) + 15;
+        date = new Date(now.getTime() + randomMins * 60 * 1000);
+      } else if (date.getTime() > maxDeliveryTime.getTime()) {
+        // Cap at 25 minutes - but maybe 22-24 to be safe "within" 25
+        const cappedMins = Math.floor(Math.random() * 3) + 22; // 22, 23, or 24
+        date = new Date(now.getTime() + cappedMins * 60 * 1000);
       }
+
       // Format to "Arriving by 07:45 PM"
       return `Arriving by ${format(date, 'hh:mm a')}`;
     } catch {
-      return "30-45 minutes";
+      return "15-25 minutes";
     }
   };
 
@@ -295,14 +303,32 @@ export default function CheckoutSuccess() {
                 ))}
               </div>
 
-              <div className="pt-4 flex flex-col items-end border-t border-gray-100/80 mt-2">
-                <div className="flex justify-between w-full text-sm text-gray-500 mb-1">
+              <div className="pt-4 flex flex-col items-end border-t border-gray-100/80 mt-2 space-y-2">
+                {order.subtotal != null && (
+                  <div className="flex justify-between w-full text-sm text-gray-500">
+                    <span>Subtotal</span>
+                    <span className="font-medium text-gray-800">₹{Number(order.subtotal).toFixed(2)}</span>
+                  </div>
+                )}
+                {order.taxAmount != null && order.taxAmount > 0 && (
+                  <div className="flex justify-between w-full text-sm text-gray-500">
+                    <span>GST & Handling</span>
+                    <span className="font-medium text-gray-800">₹{Number(order.taxAmount).toFixed(2)}</span>
+                  </div>
+                )}
+                {order.discountAmount != null && order.discountAmount > 0 && (
+                  <div className="flex justify-between w-full text-sm text-green-600">
+                    <span>Promo Discount</span>
+                    <span className="font-medium">-₹{Number(order.discountAmount).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between w-full text-sm text-gray-500">
                   <span>Payment Method</span>
                   <span className="uppercase font-medium text-gray-800">{order.paymentMethod}</span>
                 </div>
-                <div className="flex justify-between w-full text-base font-bold text-gray-900 mt-2">
+                <div className="flex justify-between w-full text-base font-bold text-gray-900 mt-2 pt-2 border-t border-gray-100">
                   <span>Total Paid</span>
-                  <span className="text-xl text-green-600">₹{order.totalAmount}</span>
+                  <span className="text-xl text-green-600">₹{Number(order.totalAmount).toFixed(2)}</span>
                 </div>
               </div>
             </div>

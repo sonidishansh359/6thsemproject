@@ -82,7 +82,7 @@ const featureTemplate = [
   {
     icon: Zap,
     title: 'Lightning Fast',
-    description: 'Get your food delivered in under 30 minutes',
+    description: 'Get your food delivered in under 25 minutes',
   },
   {
     icon: Shield,
@@ -299,8 +299,7 @@ export default function Landing() {
                   transition={{ delay: 1, duration: 1, repeat: Infinity, repeatType: "reverse" }}
                   className="flex flex-col items-center gap-2 text-white mt-12"
                 >
-                  <span className="text-sm font-bold tracking-wider uppercase py-2 px-6 bg-black/20 rounded-full backdrop-blur-sm border border-white/10 shadow-lg flex items-center justify-center">Scroll Down</span>
-                  <ChevronDown className="w-6 h-6 animate-bounce drop-shadow-md" />
+                  <ChevronDown className="w-8 h-8 animate-bounce drop-shadow-md" />
                 </motion.div>
               </motion.div>
 

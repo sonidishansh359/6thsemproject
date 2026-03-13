@@ -71,6 +71,9 @@ app.use('/api/promo-codes', require('./routes/promo-codes'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/admin-earnings', require('./routes/admin-earnings'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/admin/reports', require('./routes/reports.routes'));
+app.use('/api/owner-report', require('./routes/owner-report'));
+app.use('/api/delivery-report', require('./routes/delivery-report'));
 
 
 // Attach io to app for use in routes
@@ -439,6 +442,28 @@ io.on('connection', (socket) => {
       socket.emit('trackingUnsubscribed', { orderId });
     } catch (error) {
       console.error('❌ Error unsubscribing from tracking:', error);
+    }
+  });
+
+  // Delivery boy rings customer
+  socket.on('ringCustomer', async (data) => {
+    try {
+      const { orderId } = data;
+      console.log(`\n🔔 Delivery boy ringing customer for order ${orderId}`);
+      if (orderId) {
+        io.to(`order_${orderId}`).emit('ringCustomer', { orderId, timestamp: Date.now() });
+
+        // Also emit directly to the user's personal room
+        const Order = require('./models/Order');
+        const order = await Order.findById(orderId).select('user');
+        if (order && order.user) {
+          const userId = order.user._id || order.user;
+          console.log(`🔔 Also emitting ring Customer to user room: user_${userId}`);
+          io.to(`user_${userId}`).emit('ringCustomer', { orderId, timestamp: Date.now() });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error ringing customer:', error);
     }
   });
 

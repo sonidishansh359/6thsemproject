@@ -98,6 +98,27 @@ export default function UserCart() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('online');
   const [isProcessing, setIsProcessing] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [taxRate, setTaxRate] = useState(0);
+
+  useEffect(() => {
+    // Fetch settings to get tax rate
+    const fetchSettings = async () => {
+      try {
+        const API_ORIGIN = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
+        const API_BASE_URL = API_ORIGIN.endsWith('/api') ? API_ORIGIN : `${API_ORIGIN}/api`;
+        const response = await fetch(`${API_BASE_URL}/settings`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.taxRate !== undefined) {
+            setTaxRate(data.taxRate);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Promo code state
   const [promoCode, setPromoCode] = useState('');
@@ -105,12 +126,36 @@ export default function UserCart() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [promoError, setPromoError] = useState('');
+  const [availablePromos, setAvailablePromos] = useState<any[]>([]);
+
+  // Fetch available promo codes for the restaurant
+  useEffect(() => {
+    const fetchPromoCodes = async () => {
+      if (cart.length === 0) return;
+      const restaurantId = cart[0]?.restaurantId;
+      if (!restaurantId) return;
+
+      try {
+        const API_ORIGIN = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
+        const API_BASE_URL = API_ORIGIN.endsWith('/api') ? API_ORIGIN : `${API_ORIGIN}/api`;
+        const response = await fetch(`${API_BASE_URL}/promo-codes/restaurant/${restaurantId}`);
+        if (response.ok) {
+          const codes = await response.json();
+          setAvailablePromos(codes);
+        }
+      } catch (error) {
+        console.error('Error fetching promo codes:', error);
+      }
+    };
+    fetchPromoCodes();
+  }, [cart]);
 
   // Calculate cart totals
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = subtotal > 25 ? 0 : 3.99;
-  // Tax removed as per requirement
-  const total = subtotal + deliveryFee - discountAmount;
+  const subtotalAfterDiscount = subtotal - discountAmount;
+  const taxAmount = (subtotalAfterDiscount * taxRate) / 100;
+  const total = subtotalAfterDiscount + deliveryFee + taxAmount;
 
   // Get user's live location
   const getLiveLocation = () => {
@@ -368,6 +413,64 @@ export default function UserCart() {
     }
   };
 
+  const handleApplyPromoForCode = async (codeToApply: string) => {
+    if (!codeToApply.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    setPromoError('');
+
+    try {
+      const restaurantId = cart[0]?.restaurantId;
+
+      // Normalize API base URL to always include '/api'
+      const API_BASE_URL = (() => {
+        const base = (import.meta as any).env?.VITE_API_URL as string | undefined;
+        if (!base) return 'http://localhost:5000/api';
+        return base.endsWith('/api') ? base : `${base}/api`;
+      })();
+
+      const response = await fetch(`${API_BASE_URL}/promo-codes/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          code: codeToApply.toUpperCase(),
+          restaurantId,
+          orderAmount: subtotal
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
+        setPromoError(data.message || 'Invalid promo code');
+        setAppliedPromo(null);
+        setDiscountAmount(0);
+      } else {
+        setAppliedPromo(data.promoCode);
+        setDiscountAmount(data.promoCode.discountAmount);
+        setPromoCode(data.promoCode.code);
+        setPromoError('');
+        toast({
+          title: 'Promo Code Applied!',
+          description: `You saved ₹${data.promoCode.discountAmount.toFixed(2)}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error validating promo code:', error);
+      setPromoError('Failed to validate promo code');
+      setAppliedPromo(null);
+      setDiscountAmount(0);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
   const handleRemovePromo = () => {
     setPromoCode('');
     setAppliedPromo(null);
@@ -446,7 +549,8 @@ export default function UserCart() {
                   razorpayOrderId: response.razorpay_order_id,
                   razorpayPaymentId: response.razorpay_payment_id,
                   razorpaySignature: response.razorpay_signature
-                }
+                },
+                taxAmount
               );
 
               setIsProcessing(false);
@@ -460,7 +564,7 @@ export default function UserCart() {
                 state: {
                   order,
                   deliveryAddress: deliveryAddress.address,
-                  estimatedDelivery: '30-45 minutes'
+                  estimatedDelivery: '15-25 minutes'
                 }
               });
             } catch (error) {
@@ -509,7 +613,7 @@ export default function UserCart() {
         // Simulate processing for COD
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const order = await placeOrder(deliveryAddress.address, selectedPayment, specialInstructions, appliedPromo?.id, subtotal);
+        const order = await placeOrder(deliveryAddress.address, selectedPayment, specialInstructions, appliedPromo?.id, subtotal, undefined, taxAmount);
 
         setIsProcessing(false);
 
@@ -522,7 +626,7 @@ export default function UserCart() {
           state: {
             order,
             deliveryAddress: deliveryAddress.address,
-            estimatedDelivery: '30-40 minutes'
+            estimatedDelivery: '15-25 minutes'
           }
         });
       }
@@ -1197,6 +1301,45 @@ export default function UserCart() {
                       {promoError}
                     </p>
                   )}
+                  {availablePromos.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-3">Available Offers</h3>
+                      <div className="space-y-3">
+                        {availablePromos.map(promo => (
+                          <div key={promo._id || promo.id} className="border border-green-200 bg-green-50/30 rounded-lg p-3 relative overflow-hidden flex justify-between items-center group">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
+                            <div className="flex-1 pl-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded text-sm tracking-wider border border-green-200 border-dashed">
+                                  {promo.code}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground flex items-center gap-1">
+                                <span className="font-semibold">{promo.discountPercentage}% OFF</span>
+                              </p>
+                              {promo.minOrderAmount > 0 && (
+                                <p className="text-xs text-muted-foreground mt-0.5">On orders above ₹{promo.minOrderAmount.toFixed(0)}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-100 shrink-0 ml-3"
+                              onClick={() => {
+                                setPromoCode(promo.code);
+                                // The apply process will start immediately after setting the code
+                                // by hooking into the next render or by calling validation directly.
+                                // Let's call validation directly but wait for state to update
+                                setTimeout(() => handleApplyPromoForCode(promo.code), 0);
+                              }}
+                            >
+                              Apply
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -1229,6 +1372,12 @@ export default function UserCart() {
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
+                {taxRate > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax ({taxRate}%)</span>
+                    <span className="text-foreground">₹{taxAmount.toFixed(2)}</span>
+                  </div>
+                )}
 
                 <div className="h-px bg-border my-4" />
                 <div className="flex justify-between text-base font-semibold">

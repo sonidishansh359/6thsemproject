@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const Owner = require('../models/Owner');
 
 const ownerAuth = async (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const token = req.header('Authorization')?.replace('Bearer ', '') || req.query.token;
   if (!token) {
     console.log('ownerAuth failed: No token provided');
     return res.status(401).json({ message: 'No token, authorization denied' });
@@ -21,10 +21,7 @@ const ownerAuth = async (req, res, next) => {
     }
 
     console.log('ownerAuth successful for owner:', owner._id);
-    console.log('Owner user:', owner.user);
-    console.log('Owner restaurants array:', owner.restaurants);
-    console.log('Owner restaurants type:', Array.isArray(owner.restaurants) ? 'array' : typeof owner.restaurants);
-    
+
     req.owner = owner;
     next();
   } catch (err) {

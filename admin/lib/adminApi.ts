@@ -210,3 +210,46 @@ export const withdrawAdminMoney = async (amount: number) => {
   });
   return handleResponse<{ message: string; availableBalance: number }>(res);
 };
+
+export const fetchAdminReports = async (params: Record<string, any>) => {
+  const adminKey = (import.meta as any).env?.VITE_ADMIN_API_KEY || 'quickeats-admin';
+  const token = localStorage.getItem('adminToken');
+  const query = new URLSearchParams(params).toString();
+
+  const res = await fetch(`${API_BASE_URL}/admin/reports?${query}`, {
+    headers: {
+      'x-admin-key': adminKey,
+      'Authorization': `Bearer ${token}`
+    },
+  });
+  return handleResponse<any>(res);
+};
+
+export const exportAdminReports = async (type: 'csv' | 'pdf', params: Record<string, any>) => {
+  const adminKey = (import.meta as any).env?.VITE_ADMIN_API_KEY || 'quickeats-admin';
+  const token = localStorage.getItem('adminToken');
+  const query = new URLSearchParams(params).toString();
+
+  const url = `${API_BASE_URL}/admin/reports/export/${type}?${query}`;
+
+  const res = await fetch(url, {
+    headers: {
+      'x-admin-key': adminKey,
+      'Authorization': `Bearer ${token}`
+    },
+  });
+
+  if (!res.ok) {
+    const message = await res.text();
+    throw new Error(message || "Export failed");
+  }
+
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = `${params.type || 'report'}_${params.from || 'start'}_${params.to || 'end'}.${type}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};

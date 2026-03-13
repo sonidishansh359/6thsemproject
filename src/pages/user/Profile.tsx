@@ -10,6 +10,7 @@ const Profile: React.FC = () => {
   const { user, token } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +21,7 @@ const Profile: React.FC = () => {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
+      setPhone(user.phone || '');
     }
   }, [user]);
 
@@ -91,7 +93,7 @@ const Profile: React.FC = () => {
         return alert('Not authenticated');
       }
 
-      const body: any = { name, email };
+      const body: any = { name, email, phone };
       if (profilePicture) {
         body.profilePicture = profilePicture;
       }
@@ -216,7 +218,11 @@ const Profile: React.FC = () => {
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9876543210" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role (Read Only)</Label>
               <Input id="role" value={user.role} readOnly />
             </div>
           </div>

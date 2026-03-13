@@ -43,17 +43,19 @@ export default function OrderHistory() {
                 />
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1 pr-4">
                       <h3 className="font-semibold text-foreground">{order.restaurantName}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {order.items.length} items • ₹{order.totalAmount.toFixed(2)}
+                      <p className="text-xs text-muted-foreground line-clamp-2 my-1">
+                        {order.items.map(i => `${i.quantity} x ${i.name}`).join(', ')}
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {order.items.reduce((acc, item) => acc + item.quantity, 0)} items • ₹{order.totalAmount.toFixed(2)}
                       </p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      order.status === 'delivered'
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'delivered'
                         ? 'bg-success/10 text-success'
                         : 'bg-warning/10 text-warning'
-                    }`}>
+                      }`}>
                       {order.status.replace('_', ' ')}
                     </span>
                   </div>
@@ -61,7 +63,7 @@ export default function OrderHistory() {
                     <Clock className="w-4 h-4" />
                     {new Date(order.createdAt).toLocaleDateString()}
                   </div>
-                  
+
                   {/* Feedback Button for Delivered Orders */}
                   {isDelivered(order.status) && (
                     <div className="mt-3">

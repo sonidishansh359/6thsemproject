@@ -62,7 +62,7 @@ const OwnerRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAuthenticated || user?.role !== 'owner') {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <OwnerDataProvider>{children}</OwnerDataProvider>;
@@ -77,7 +77,7 @@ const DeliveryRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAuthenticated || user?.role !== 'delivery') {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <DeliveryDataProvider>{children}</DeliveryDataProvider>;
@@ -92,7 +92,7 @@ const UserRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAuthenticated || user?.role !== 'user') {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <UserDataProvider>{children}</UserDataProvider>;
@@ -105,7 +105,7 @@ const AppRoutes = () => (
     <Route path="/restaurants" element={<Restaurants />} />
     <Route path="/offers" element={<Offers />} />
     <Route path="/help" element={<Help />} />
-    <Route path="/auth" element={<Auth />} />
+    <Route path="/auth" element={<Navigate to="/" replace />} />
     <Route path="/cart" element={<Cart />} />
 
     {/* Owner Dashboard Routes */}

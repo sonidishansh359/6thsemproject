@@ -40,7 +40,7 @@ function toRad(degrees) {
 // Create order
 router.post('/', auth, async (req, res) => {
   try {
-    const { restaurantId, items, deliveryAddress, totalAmount, paymentMethod, specialInstructions, promoCodeId, subtotal, paymentDetails } = req.body;
+    const { restaurantId, items, deliveryAddress, totalAmount, paymentMethod, specialInstructions, promoCodeId, subtotal, paymentDetails, taxAmount } = req.body;
 
     // Check if restaurant is open
     const { isRestaurantOpen } = require('../utils/timeUtils');
@@ -177,8 +177,8 @@ router.post('/', auth, async (req, res) => {
       ownerEarning: totalOwnerEarning,
       adminEarning: adminEarning,
       discountAmount,
+      taxAmount: taxAmount || 0,
       promoCode: promoCodeId || null,
-      specialInstructions: specialInstructions || '',
       specialInstructions: specialInstructions || '',
       paymentMethod: paymentMethod || 'cod',
       paymentStatus: (paymentMethod === 'online' || paymentMethod === 'upi' || paymentMethod === 'card') ? 'paid' : 'pay_on_delivery',
@@ -1410,15 +1410,19 @@ router.post('/:id/verify-delivery-otp', auth, async (req, res) => {
         };
 
         deliveryBoy.deliveryHistory.unshift(historyEntry);
-        await deliveryBoy.save();
+      } catch (historyErr) {
+        console.error('⚠️ Error building delivery history entry:', historyErr.message);
+      }
 
+      try {
+        await deliveryBoy.save();
         console.log('✅ Delivery boy earnings and history updated:', {
           earning: deliveryEarning,
           todayTotal: deliveryBoy.earningsBreakdown.today,
           totalDeliveries: deliveryBoy.totalDeliveries
         });
-      } catch (historyErr) {
-        console.error('⚠️ Error saving delivery history:', historyErr.message);
+      } catch (saveErr) {
+        console.error('⚠️ Error saving delivery boy data:', saveErr.message);
       }
     }
 

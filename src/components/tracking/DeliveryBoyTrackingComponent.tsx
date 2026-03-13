@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertCircle, Navigation, Phone, Pause, Play, CheckCircle, Send, Package } from 'lucide-react';
+import { AlertCircle, Navigation, Phone, Pause, Play, CheckCircle, Send, Package, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import io from 'socket.io-client';
@@ -610,6 +610,23 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
     }
   };
 
+  // Handle Ring User
+  const handleRingUser = () => {
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('ringCustomer', { orderId });
+      toast({
+        title: 'Ringing Customer 🔔',
+        description: 'Sent a ring alert to the customer.',
+      });
+    } else {
+      toast({
+        title: 'Connection Error',
+        description: 'Not connected to server. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="w-full min-h-[80vh] bg-gray-50 flex flex-col relative z-0 rounded-lg overflow-hidden">
       {/* Header */}
@@ -745,17 +762,28 @@ export const DeliveryBoyTrackingComponent: React.FC<DeliveryTrackingProps> = ({
                           </div>
                         )}
 
-                        <Button
-                          onClick={handleMarkAsDelivered}
-                          disabled={isRequestingOTP || !currentLocation || !canMarkDelivered}
-                          className={`w-full font-semibold ${!canMarkDelivered
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-orange-600 hover:bg-orange-700 text-white'
-                            }`}
-                        >
-                          <CheckCircle size={18} className="mr-2" />
-                          {isRequestingOTP ? 'Sending OTP...' : 'Mark as Delivered'}
-                        </Button>
+                        <div className="flex gap-2 w-full">
+                          <Button
+                            onClick={handleMarkAsDelivered}
+                            disabled={isRequestingOTP || !currentLocation || !canMarkDelivered}
+                            className={`flex-1 font-semibold ${!canMarkDelivered
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-orange-600 hover:bg-orange-700 text-white'
+                              }`}
+                          >
+                            <CheckCircle size={18} className="mr-2" />
+                            {isRequestingOTP ? 'Sending OTP...' : 'Mark as Delivered'}
+                          </Button>
+
+                          <Button
+                            onClick={handleRingUser}
+                            variant="outline"
+                            className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 flex-shrink-0"
+                            title="Ring Customer"
+                          >
+                            <Bell size={20} />
+                          </Button>
+                        </div>
 
                         {!canMarkDelivered && (
                           <p className="text-xs text-center text-red-500 font-medium">

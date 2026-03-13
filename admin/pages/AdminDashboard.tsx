@@ -4,6 +4,7 @@ import { Activity, Building2, Clock, Gauge, MapPin, Shield, Signal, Users, Refre
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchAdminRestaurants, fetchAdminStats } from "../lib/adminApi";
+import AdminReports from "./AdminReports";
 
 const numberFormatter = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 });
 const currencyFormatter = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
@@ -54,6 +55,10 @@ const AdminDashboard = () => {
           <RefreshCw className={`h-4 w-4 mr-2 ${statsLoading ? "animate-spin" : ""}`} />
           Refresh data
         </Button>
+      </div>
+
+      <div className="mb-8">
+        <AdminReports />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

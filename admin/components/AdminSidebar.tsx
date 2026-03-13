@@ -14,7 +14,7 @@ const navItems = [
 
 export const AdminSidebar = () => {
   return (
-    <aside className="w-64 bg-card border-r border-border min-h-screen p-4 hidden md:block">
+    <aside className="w-64 bg-card border-r border-border h-full p-4 flex flex-col overflow-y-auto">
       <div className="flex items-center gap-2 mb-8">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
           <ShieldCheck className="h-5 w-5" />
