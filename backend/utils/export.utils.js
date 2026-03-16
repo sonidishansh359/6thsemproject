@@ -54,6 +54,7 @@ exports.generatePDF = async (res, title, data, headers, adminName) => {
                 prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
                     doc.font("Helvetica").fontSize(8);
                 },
+                padding: 2, // Added padding for better spacing
             });
 
             // Render Chart if Profit/Loss Report

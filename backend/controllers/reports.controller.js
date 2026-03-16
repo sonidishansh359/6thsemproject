@@ -211,12 +211,12 @@ exports.getReportPreview = async (req, res) => {
 const getReportHeaders = (type) => {
     switch (type) {
         case 'orders': return [
-            { label: 'Order ID', value: 'id', id: 'id', width: 60 },
-            { label: 'Customer', value: 'customerName', id: 'customerName', width: 60 },
-            { label: 'Restaurant', value: 'restaurantName', id: 'restaurantName', width: 60 },
-            { label: 'Status', value: 'status', id: 'status', width: 40 },
-            { label: 'Method', value: 'paymentMethod', id: 'paymentMethod', width: 40 },
-            { label: 'Final Amt', value: 'finalAmount', id: 'finalAmount', width: 40 },
+            { label: 'Order ID', value: 'id', id: 'id', width: 130 },
+            { label: 'Customer', value: 'customerName', id: 'customerName', width: 90 },
+            { label: 'Restaurant', value: 'restaurantName', id: 'restaurantName', width: 80 },
+            { label: 'Status', value: 'status', id: 'status', width: 55 },
+            { label: 'Method', value: 'paymentMethod', id: 'paymentMethod', width: 45 },
+            { label: 'Final Amt', value: 'finalAmount', id: 'finalAmount', width: 45 },
             { label: 'Comm.', value: 'adminCommission', id: 'adminCommission', width: 40 },
             { label: 'Date', value: 'createdAt', id: 'createdAt', width: 50 },
         ];
