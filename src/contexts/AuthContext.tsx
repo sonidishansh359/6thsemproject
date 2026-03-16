@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole, AuthState } from '@/types/auth';
+import { auth, googleProvider, signInWithPopup } from '@/lib/firebase';
 
 interface StoredUser {
   email: string;
@@ -165,9 +166,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const googleLogin = async (role: UserRole, onSuccess?: () => void): Promise<boolean> => {
-    // Google login not implemented in backend yet
-    alert('Google login is not implemented yet. Please use email/password signup.');
-    return false;
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+
+      if (!firebaseUser.email) {
+        alert("Google account must have an email address.");
+        return false;
+      }
+
+      const backendRole = role === 'delivery' ? 'delivery_boy' : role;
+
+      const response = await fetch(`${API_BASE_URL}/auth/google-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: firebaseUser.displayName || 'Google User',
+          email: firebaseUser.email,
+          googleId: firebaseUser.uid,
+          profilePicture: firebaseUser.photoURL,
+          role: backendRole,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || 'Google login failed');
+        return false;
+      }
+
+      // Normalize backend role to frontend role naming
+      const normalizedRole = data.user.role === 'delivery_boy' ? 'delivery' : data.user.role;
+      const normalizedUser = { ...data.user, role: normalizedRole } as User;
+
+      const authData = { user: normalizedUser, token: data.token };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+      
+      setAuthState({
+        user: normalizedUser,
+        token: data.token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Google login error:', error);
+      // Don't alert if user closed the popup
+      if ((error as any)?.code !== 'auth/popup-closed-by-user') {
+        alert('Failed to login with Google. Please try again.');
+      }
+      return false;
+    }
   };
 
   const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {

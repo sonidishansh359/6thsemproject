@@ -119,29 +119,38 @@ router.post('/', auth, async (req, res) => {
 
     // Calculate Owner and Admin Earnings
     let totalOwnerEarning = 0;
+    const enrichedItems = [];
 
     // We need to fetch original prices from DB to be secure and accurate
     const MenuItem = require('../models/MenuItem');
     for (const item of items) {
       const menuItem = await MenuItem.findById(item.menuItemId || item.menuItem); // Handle both formats
+      let basePrice;
+      let itemName = item.name;
+
       if (menuItem) {
         // Use originalPrice (Base Price) if available. 
-        // If not (legacy items), assume current price includes markup and reverse calculate, 
-        // OR just give full amount to owner? User wants strict separation.
-        // Let's reverse calculate if originalPrice is missing to maintain the rule "Admin gets 15%".
-        // Base * 1.15 = Price => Base = Price / 1.15
-        const basePrice = menuItem.originalPrice !== undefined
+        basePrice = menuItem.originalPrice !== undefined
           ? menuItem.originalPrice
           : (menuItem.price / 1.15);
+        
+        itemName = menuItem.name;
 
-        console.log(`🔍 Item Debug: ID=${menuItem._id}, OriginalPrice=${menuItem.originalPrice}, Price=${menuItem.price}, CalcBase=${basePrice}, ReqPrice=${item.price}`);
+        console.log(`🔍 Item Debug: Name=${menuItem.name}, ID=${menuItem._id}, OriginalPrice=${menuItem.originalPrice}, Price=${menuItem.price}, CalcBase=${basePrice}, ReqPrice=${item.price}`);
 
         totalOwnerEarning += basePrice * item.quantity;
       } else {
         // Fallback if item deleted (shouldn't happen due to checks above)
         console.log(`⚠️ Item not found in DB, using fallback. ReqPrice=${item.price}`);
-        totalOwnerEarning += (item.price / 1.15) * item.quantity;
+        basePrice = (item.price / 1.15);
+        totalOwnerEarning += basePrice * item.quantity;
       }
+
+      enrichedItems.push({
+        ...item,
+        name: itemName || item.name || 'Item',
+        originalPrice: Math.round(basePrice * 100) / 100
+      });
     }
 
     // Rounding to 2 decimal places to avoid floating point issues
@@ -153,24 +162,7 @@ router.post('/', auth, async (req, res) => {
     const order = new Order({
       user: req.user.id,
       restaurant: restaurantId,
-      items: items.map((item, index) => {
-        // We calculated basePrice earlier for totalOwnerEarning, but didn't store it per item.
-        // We need to re-derive or store it. 
-        // Since we iterate items above, let's optimize or just re-calculate here for safety.
-        // Actually, we can't easily access the `menuItem` doc here without re-fetching or restructuring.
-        // Let's rely on the simplified calculation: price / 1.15 if we don't have the doc handy, 
-        // OR better: update the `items` array passed to `new Order` to include it.
-
-        // BETTER APPROACH: The `items` array in `req.body` comes from frontend. 
-        // The frontend doesn't send `originalPrice`.
-        // We should really construct the `items` array for the order with the data we fetched above.
-
-        return {
-          ...item,
-          originalPrice: Math.round((item.price / 1.15) * 100) / 100 // Best effort reverse calc since we didn't store the fetched docs in a map. 
-          // ideally we should use the fetched doc, but for now this ensures consistency with the Admin logic.
-        };
-      }),
+      items: enrichedItems,
       deliveryAddress,
       subtotal: subtotal || totalAmount,
       totalAmount,

@@ -760,7 +760,7 @@ const sendOrderReceiptEmail = async (email, userName, order, items) => {
     const itemsHtml = items.map(item => `
       <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px 0;">
-          <div style="font-weight: 600; color: #2d3748;">${item.menuItem?.name || 'Item'}</div>
+          <div style="font-weight: 600; color: #2d3748;">${item.name || (item.menuItem && item.menuItem.name) || 'Item'}</div>
           <div style="font-size: 12px; color: #718096;">Qty: ${item.quantity}</div>
         </td>
         <td style="padding: 12px 0; text-align: right; font-weight: 600; color: #2d3748;">

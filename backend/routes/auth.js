@@ -149,6 +149,74 @@ router.post('/login', [
   }
 });
 
+// Google Login/Signup
+router.post('/google-login', async (req, res) => {
+  const { name, email, googleId, profilePicture, role } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user if not exists
+      user = new User({
+        name,
+        email,
+        password: Math.random().toString(36).slice(-8), // Random password
+        role: role || 'user',
+        profilePicture
+      });
+      await user.save();
+
+      // Create role-specific document
+      if (user.role === 'owner') {
+        const owner = new Owner({ user: user._id });
+        await owner.save();
+      } else if (user.role === 'delivery_boy') {
+        const deliveryBoy = new DeliveryBoy({ user: user._id });
+        await deliveryBoy.save();
+      }
+      
+      // Send welcome email
+      if (sendWelcomeEmail) {
+        sendWelcomeEmail(user.email, user.name, user.role).catch(err => console.error('Email error:', err));
+      }
+    } else {
+      // Check if account is deleted or banned
+      if (user.banned) {
+        return res.status(403).json({ message: 'your account is blocked' });
+      }
+      if (user.deleted) {
+        return res.status(403).json({ message: 'your account is deleted' });
+      }
+    }
+
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.role
+      }
+    };
+
+    jwt.sign(payload, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' }, (err, token) => {
+      if (err) throw err;
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || null,
+          role: user.role,
+          profilePicture: user.profilePicture || profilePicture
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Google login error:', err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // Forgot Password - Send OTP
 router.post('/forgot-password', [
   body('email', 'Please include a valid email').isEmail()
