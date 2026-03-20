@@ -57,7 +57,7 @@ export default function RestaurantDetail() {
       setIsLoadingMenu(true);
       try {
         const query = dietaryMode !== 'All' ? `?dietaryType=${dietaryMode}` : '';
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const API_URL = import.meta.env.VITE_API_URL || 'https://quickeatsbackend.onrender.com';
         const res = await fetch(`${API_URL}/api/menu/restaurant/${id}${query}`);
         if (res.ok) {
           const data = await res.json();

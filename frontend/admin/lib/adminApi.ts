@@ -18,7 +18,7 @@ export const approveRestaurant = async (id: string) => {
   });
   return handleResponse<{ message: string; restaurant: AdminRestaurant }>(res);
 };
-const API_BASE_URL = ((import.meta as any).env?.VITE_API_URL || "http://localhost:5000") + "/api";
+const API_BASE_URL = ((import.meta as any).env?.VITE_API_URL || "https://quickeatsbackend.onrender.com") + "/api";
 
 export interface AdminStats {
   appRating: number;

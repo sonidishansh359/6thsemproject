@@ -15,7 +15,7 @@ const Settings = () => {
     const { token } = useAdminAuth();
     const { toast } = useToast();
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://quickeatsbackend.onrender.com/api';
 
     useEffect(() => {
         fetchSettings();

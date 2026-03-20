@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 const run = async () => {
     try {
-        const SOCKET_URL = 'http://localhost:5000';
+        const SOCKET_URL = 'https://quickeatsbackend.onrender.com';
         const socket = io(SOCKET_URL);
 
         console.log('Connecting to socket...');

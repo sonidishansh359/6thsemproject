@@ -150,7 +150,7 @@ export const LocationTrackingScreen: React.FC<LocationTrackingScreenProps> = ({
       const token = getAuthToken();
 
       // Normalize API base from env
-      const envApi = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const envApi = (import.meta as any).env?.VITE_API_URL || 'https://quickeatsbackend.onrender.com';
       const apiBase = envApi.replace(/\/$/, '').endsWith('/api') ? envApi.replace(/\/$/, '') : `${envApi.replace(/\/$/, '')}/api`;
 
       console.log(`📡 Fetching order data for orderId: ${orderId}`);

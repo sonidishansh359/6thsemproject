@@ -29,7 +29,7 @@ interface PromoCode {
 // Ensure API base URL consistently includes the '/api' prefix
 const API_BASE_URL = (() => {
   const base = import.meta.env.VITE_API_URL as string | undefined;
-  if (!base) return 'http://localhost:5000/api';
+  if (!base) return 'https://quickeatsbackend.onrender.com/api';
   return base.endsWith('/api') ? base : `${base}/api`;
 })();
 

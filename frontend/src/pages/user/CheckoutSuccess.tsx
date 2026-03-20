@@ -21,7 +21,7 @@ export default function CheckoutSuccess() {
     const token = localStorage.getItem('quickeats_auth');
     if (!token) return;
 
-    const socket = io('http://localhost:5000', {
+    const socket = io('https://quickeatsbackend.onrender.com', {
       auth: { token: JSON.parse(token).token }
     });
 

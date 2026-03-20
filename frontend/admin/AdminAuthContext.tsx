@@ -54,10 +54,7 @@ export const AdminAuthProvider = ({ children }: { children: React.ReactNode }) =
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const protocol = window.location.protocol;
-      const hostname = window.location.hostname;
-      const port = 5000; // Backend port
-      const apiUrl = `${protocol}//${hostname}:${port}/api/auth/login`;
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'https://quickeatsbackend.onrender.com'}/api/auth/login`;
 
       const res = await fetch(apiUrl, {
         method: 'POST',
