@@ -77,10 +77,24 @@ app.use('/api/admin/reports', require('./routes/reports.routes'));
 app.use('/api/owner-report', require('./routes/owner-report'));
 app.use('/api/delivery-report', require('./routes/delivery-report'));
 
-
-// Attach io to app for use in routes
 app.set('io', io);
 
+// Custom Error Handler to ensure CORS headers persist
+app.use((err, req, res, next) => {
+  console.error('🔥 Server Error:', err.stack);
+  
+  // Attach CORS headers manually to error response for Vercel
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.vercel.app') || origin.includes('localhost'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(500).json({
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'production' ? {} : err.message
+  });
+});
 // Socket.IO authentication middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
