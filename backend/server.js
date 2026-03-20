@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -23,22 +24,21 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if origin is in allowed list or is a local network IP
-    if (allowedOrigins.indexOf(origin) !== -1 ||
-      origin.startsWith('http://10.') ||
-      origin.startsWith('http://192.168.') ||
-      origin.startsWith('http://172.') ||
-      origin.endsWith('.vercel.app')) {
+    // Check if origin is allowed or is any vercel.app
+    if (!origin || 
+        allowedOrigins.includes(origin) || 
+        origin.endsWith('.vercel.app') || 
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1')) {
       callback(null, true);
     } else {
-      console.log('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
+      console.log('CORS Blocked:', origin);
+      callback(null, false);
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 };
 
 const io = socketIo(server, {
