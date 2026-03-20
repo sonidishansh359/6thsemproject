@@ -25,10 +25,11 @@ interface AdminNotificationContextValue {
 const AdminNotificationContext = createContext<AdminNotificationContextValue | undefined>(undefined);
 
 const ADMIN_SOCKET_URL = (() => {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const port = 5000;
-    return `${protocol}//${hostname}:${port}`;
+    const envValue = (import.meta as any).env?.VITE_API_URL;
+    if (envValue) {
+        return envValue.replace(/\/api$/, '');
+    }
+    return "https://quickeatsbackend.onrender.com";
 })();
 
 const STORAGE_KEY = 'admin_notifications_v1';

@@ -263,9 +263,9 @@ export const LocationTrackingScreen: React.FC<LocationTrackingScreenProps> = ({
     const getSocketUrl = () => {
       const envUrl = (import.meta as any).env?.VITE_API_URL;
       if (envUrl) {
-        return envUrl.replace(/\/api$/, '').replace(/\/$/, '');
+          return envUrl.replace(/\/api$/, '');
       }
-      return window.location.origin.replace(/:\d+$/, ':5000'); // Fallback to port 5000 on same host
+      return 'https://quickeatsbackend.onrender.com';
     };
 
     const socketUrl = getSocketUrl();

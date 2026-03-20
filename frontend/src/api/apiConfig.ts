@@ -1,4 +1,6 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://quickeatsbackend.onrender.com";
+const envValue = import.meta.env.VITE_API_URL;
+export const API_ORIGIN = envValue || "https://quickeatsbackend.onrender.com";
+export const API_BASE_URL = API_ORIGIN.endsWith('/api') ? API_ORIGIN : `${API_ORIGIN}/api`;
 
 export const getHeaders = () => {
   const token = localStorage.getItem("token");
